@@ -1,0 +1,13 @@
+[server]
+headless = true
+port = 8501
+address = "0.0.0.0"
+enableCORS = true
+enableXsrfProtection = true
+maxUploadSize = 500
+# Production: same-origin by default; set corsAllowedOrigins/allowedHosts at
+# the reverse proxy for internet-facing deployments.
+# corsAllowedOrigins = ["https://safety.example.com"]
+
+[browser]
+gatherUsageStats = false

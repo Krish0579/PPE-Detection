@@ -1,0 +1,21 @@
+# Prometheus scrape example for SAFE SIGHT AI host metrics.
+# The app exposes container health at /_stcore/health; use node-exporter
+# + cadvisor for CPU/GPU/disk, and alert on evidence-disk growth.
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: safesight
+    static_configs:
+      - targets: ["safesight:8501"]
+    metrics_path: /_stcore/health
+    scrape_interval: 30s
+
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]

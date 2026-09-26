@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: safesight-ai
+  labels:
+    app: safesight-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: safesight-ai
+  template:
+    metadata:
+      labels:
+        app: safesight-ai
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: safesight
+          image: safesight-ai:1.0.0
+          ports:
+            - containerPort: 8501
+          env:
+            - name: SAFE_SIGHT_ENV
+              value: production
+            - name: PPE_MODEL_PATH
+              value: models/best.pt
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: models
+              mountPath: /app/models
+              readOnly: true
+          resources:
+            requests:
+              memory: 2Gi
+              cpu: "1"
+            limits:
+              memory: 8Gi
+              cpu: "4"
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 45
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 20
+            periodSeconds: 10
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: safesight-data
+        - name: models
+          configMap:
+            name: safesight-models
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: safesight-ai
+spec:
+  selector:
+    app: safesight-ai
+  ports:
+    - port: 80
+      targetPort: 8501
+  type: ClusterIP

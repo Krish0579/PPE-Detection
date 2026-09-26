@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE and OS files
+.DS_Store
+.vscode/
+.idea/
+
+# Testing and linting caches
+.pytest_cache/
+.ruff_cache/
+.cache/
+.matplotlib/
+.roo/
+.swarm/
+dist/
+
+# Streamlit credentials & cache
+.streamlit/credentials.toml
+
+# Ruflo / AgentDB / local vendor artifacts
+.agents/
+awesome-freellm-apis/
+.claude-flow/
+.claude/
+.codex/
+.gemini/
+
+# Runtime data & large weights
+.env
+.env.*
+.env.local
+data/
+runs/
+models/*.pt
+!models/.gitkeep

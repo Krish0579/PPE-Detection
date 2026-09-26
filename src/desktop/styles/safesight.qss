@@ -1,0 +1,375 @@
+/* ==========================================================================
+   SAFE SIGHT AI · Industrial Safety Monitoring Platform
+   Light Theme Stylesheet (Qt6 / PySide6) matching Streamlit Reference
+   ========================================================================== */
+
+/* Global Window & Surfaces */
+QMainWindow, QWidget#centralWidget {
+    background-color: #f7f9fa;
+    color: #1f2937;
+    font-family: system-ui, -apple-system, "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial;
+    font-size: 13px;
+}
+
+QWidget {
+    background-color: transparent;
+    color: #1f2937;
+    selection-background-color: #047857;
+    selection-color: #ffffff;
+}
+
+/* Scroll Area */
+QScrollArea {
+    border: none;
+    background-color: transparent;
+}
+
+QScrollBar:vertical {
+    border: none;
+    background: #f1f5f9;
+    width: 6px;
+    margin: 0;
+    border-radius: 3px;
+}
+
+QScrollBar::handle:vertical {
+    background: #cbd5e1;
+    min-height: 24px;
+    border-radius: 3px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #047857;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0px;
+}
+
+/* Sidebar Navigation */
+QWidget#sidebarContainer {
+    background-color: #ffffff;
+    border-right: 1px solid #e5e7eb;
+    min-width: 250px;
+    max-width: 270px;
+}
+
+QListWidget#navSidebar {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    padding: 8px 12px;
+}
+
+QListWidget#navSidebar::item {
+    height: 48px;
+    padding: 0 16px;
+    margin: 4px 0;
+    border-radius: 8px;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+QListWidget#navSidebar::item:hover {
+    background-color: #f8fafc;
+    border-color: #e2e8f0;
+    color: #111827;
+}
+
+QListWidget#navSidebar::item:selected {
+    background-color: #eaf7f1;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    border-left: 4px solid #047857;
+    font-weight: 700;
+}
+
+/* Top Floating Brand Card */
+QFrame#safesightTopBar {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 10px 20px;
+}
+
+/* Eyebrow & Page Header */
+QLabel#pageEyebrow {
+    color: #047857;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+QLabel#pageTitle {
+    color: #0f172a;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+QLabel#pageSubtitle {
+    color: #64748b;
+    font-size: 13.5px;
+    line-height: 1.4;
+}
+
+/* Information / Tip Banner */
+QFrame#tipBanner {
+    background-color: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+
+QLabel#tipBannerText {
+    color: #0369a1;
+    font-size: 12.5px;
+    font-weight: 500;
+}
+
+/* Telemetry & Observation Strip */
+QFrame#observationStrip {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 8px 16px;
+}
+
+/* Surface Cards & Panels */
+QFrame.panelCard, QWidget.panelCard {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+QFrame.metricCard {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px 18px 12px;
+}
+
+QFrame.metricCard:hover {
+    border-color: #cbd5e1;
+}
+
+/* Uploader Drop Box */
+QFrame#uploaderCard {
+    background-color: #f8fafc;
+    border: 1.5px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+QFrame#uploaderCard:hover {
+    border-color: #047857;
+    background-color: #f0fdf4;
+}
+
+/* Push Buttons */
+QPushButton {
+    background-color: #ffffff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+QPushButton:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+}
+
+QPushButton:pressed {
+    background-color: #f3f4f6;
+}
+
+QPushButton:disabled {
+    background-color: #f3f4f6;
+    color: #9ca3af;
+    border-color: #e5e7eb;
+}
+
+/* Red Start Button matching original Streamlit design */
+QPushButton#primaryRedButton, QPushButton#btnStartMonitoring {
+    background-color: #ef4444;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 22px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+QPushButton#primaryRedButton:hover, QPushButton#btnStartMonitoring:hover {
+    background-color: #dc2626;
+}
+
+QPushButton#primaryRedButton:disabled, QPushButton#btnStartMonitoring:disabled {
+    background-color: #e5e7eb;
+    color: #9ca3af;
+}
+
+/* Primary Green Button */
+QPushButton#primaryButton {
+    background-color: #047857;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 18px;
+    font-weight: 700;
+}
+
+QPushButton#primaryButton:hover {
+    background-color: #065f46;
+}
+
+/* Line Edits & Combos */
+QLineEdit {
+    background-color: #ffffff;
+    color: #111827;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 13px;
+}
+
+QLineEdit:focus {
+    border: 1.5px solid #047857;
+}
+
+QComboBox {
+    background-color: #ffffff;
+    color: #111827;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: 500;
+}
+
+QComboBox:focus, QComboBox:hover {
+    border-color: #9ca3af;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 24px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #ffffff;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+    selection-background-color: #eaf7f1;
+    selection-color: #047857;
+    padding: 4px;
+}
+
+/* Tables */
+QTableWidget {
+    background-color: #ffffff;
+    alternate-background-color: #f8fafc;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    gridline-color: #f1f5f9;
+    font-size: 12.5px;
+}
+
+QTableWidget::item {
+    padding: 8px 12px;
+}
+
+QTableWidget::item:selected {
+    background-color: #eaf7f1;
+    color: #047857;
+}
+
+QHeaderView::section {
+    background-color: #f8fafc;
+    color: #475569;
+    padding: 8px 12px;
+    border: none;
+    border-bottom: 1.5px solid #e2e8f0;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Sliders */
+QSlider::groove:horizontal {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+}
+
+QSlider::sub-page:horizontal {
+    background: #ef4444;
+    border-radius: 3px;
+}
+
+QSlider::handle:horizontal {
+    background: #ffffff;
+    border: 2.5px solid #ef4444;
+    width: 16px;
+    height: 16px;
+    margin: -5px 0;
+    border-radius: 8px;
+}
+
+QSlider::handle:horizontal:hover {
+    background: #ef4444;
+}
+
+/* Checkboxes */
+QCheckBox {
+    spacing: 8px;
+    font-size: 13px;
+    color: #1f2937;
+    font-weight: 500;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid #d1d5db;
+    background-color: #ffffff;
+}
+
+QCheckBox::indicator:hover {
+    border-color: #ef4444;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #ef4444;
+    border-color: #ef4444;
+    image: none;
+}
+
+/* Footer Strip */
+QFrame#appFooter {
+    background-color: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    padding: 8px 24px;
+}
+
+QLabel#footerLeft {
+    font-size: 11px;
+    font-weight: 700;
+    color: #047857;
+}
+
+QLabel#footerRight {
+    font-size: 11px;
+    color: #64748b;
+}
