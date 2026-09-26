@@ -80,6 +80,42 @@ def render(ctx: AppContext) -> None:
         else:
             st.info("Browser model upload is disabled in production. Place reviewed checkpoints in `models/` during deployment.")
 
+        st.markdown("#### ⚡ AI Precision & Accuracy Engine")
+        st.caption("Maximize detection accuracy and recall for small PPE (goggles, gloves, boots).")
+
+        perf_mode_options = {
+            "balanced": "Balanced HD (640px · 30 FPS Standard)",
+            "performance": "High FPS Turbo (480px · Fast Frame Skip)",
+            "precision": "Ultra Precision (960px · Deep High-Res)",
+            "boosted": "✨ Max AI Accuracy Boost (960px + TTA + Person-Crop Scan)",
+        }
+        current_mode = getattr(STATE, "mode_key", "balanced")
+        if current_mode not in perf_mode_options:
+            current_mode = "balanced"
+
+        mode_keys = list(perf_mode_options.keys())
+        selected_mode = st.selectbox(
+            "Vision Engine Performance Profile",
+            mode_keys,
+            index=mode_keys.index(current_mode),
+            format_func=lambda k: perf_mode_options[k],
+            key="sys_perf_profile_select",
+            help="Select the hardware and inference profile. 'Max AI Accuracy Boost' runs multi-scale TTA and person-crop super-resolution.",
+        )
+
+        acc_boost_val = st.checkbox(
+            "Multi-Scale Test-Time Augmentation (TTA)",
+            value=bool(getattr(STATE, "accuracy_boost", False) or selected_mode == "boosted"),
+            key="sys_chk_tta_boost",
+            help="Enables multi-scale test-time augmentation to detect tilted, distant, or partially occluded PPE.",
+        )
+        crop_refine_val = st.checkbox(
+            "Hierarchical Person-Crop Scanning (Two-Pass Super-Resolution)",
+            value=bool(getattr(STATE, "crop_refine", False) or selected_mode == "boosted"),
+            key="sys_chk_crop_refine",
+            help="Performs a high-resolution secondary scan of each detected worker to catch small items (goggles, gloves, boots).",
+        )
+
     with s_c2:
         st.markdown("#### Inference Threshold Calibration")
         conf_val = st.slider(
@@ -154,8 +190,10 @@ def render(ctx: AppContext) -> None:
             conf=conf_val,
             iou=iou_val,
             class_conf=custom_class_conf,
-            mode_key=getattr(STATE, "mode_key", "balanced"),
+            mode_key=selected_mode,
             required_ppe=req_ppe_dict,
+            accuracy_boost=acc_boost_val,
+            crop_refine=crop_refine_val,
         )
 
         st.markdown("#### Shopfloor Physical Zones")

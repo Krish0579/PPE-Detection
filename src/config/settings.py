@@ -71,26 +71,42 @@ class PerformanceProfile:
     inference_size: int
     frame_skip: int
     description: str
+    augment: bool = False
+    crop_refine: bool = False
 
 PERFORMANCE_MODES: dict[str, PerformanceProfile] = {
     "balanced": PerformanceProfile(
         name="Balanced HD",
         inference_size=640,
         frame_skip=1,
-        description="Native 640px YOLO inference optimized for smooth 30 FPS throughput."
+        description="Native 640px YOLO inference optimized for smooth 30 FPS throughput.",
+        augment=False,
+        crop_refine=False,
     ),
     "performance": PerformanceProfile(
         name="High FPS Turbo",
         inference_size=480,
         frame_skip=2,
-        description="High-speed 480px inference skipping alternate frames for zero-lag streaming."
+        description="High-speed 480px inference skipping alternate frames for zero-lag streaming.",
+        augment=False,
+        crop_refine=False,
     ),
     "precision": PerformanceProfile(
         name="Ultra Precision",
         inference_size=960,
         frame_skip=1,
-        description="Deep 960px high-resolution inference for distant workers and small PPE."
-    )
+        description="Deep 960px high-resolution inference for distant workers and small PPE.",
+        augment=False,
+        crop_refine=False,
+    ),
+    "boosted": PerformanceProfile(
+        name="Max AI Accuracy Boost",
+        inference_size=960,
+        frame_skip=1,
+        description="Deep 960px + TTA + Hierarchical Person-Crop scanning for maximum safety compliance accuracy.",
+        augment=True,
+        crop_refine=True,
+    ),
 }
 DEFAULT_MODE = "balanced"
 

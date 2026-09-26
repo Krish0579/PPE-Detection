@@ -147,3 +147,43 @@ def test_full_body_worker_missing_gloves_still_flags():
     )
     assert workers[0].gloves_status == "VIOLATION"
     assert any("glove" in v.lower() for v in workers[0].violations)
+
+
+def test_nms_merge_detections():
+    from src.core.detector import nms_merge_detections
+    boxes = np.array([
+        [10, 10, 100, 100],
+        [12, 12, 98, 98],    # overlapping duplicate helmet
+        [200, 200, 300, 300],  # separate vest
+    ], dtype=np.float32)
+    scores = np.array([0.70, 0.90, 0.85], dtype=np.float32)
+    labels = ["helmet", "helmet", "vest"]
+
+    merged_b, merged_s, merged_l = nms_merge_detections(boxes, scores, labels, iou_threshold=0.45)
+    assert len(merged_b) == 2
+    assert "helmet" in merged_l
+    assert "vest" in merged_l
+    helmet_idx = merged_l.index("helmet")
+    assert round(float(merged_s[helmet_idx]), 2) == 0.90  # kept the higher confidence box
+
+
+def test_run_inference_with_accuracy_boost_and_crop_refinement():
+    img = np.zeros((480, 640, 3), dtype=np.uint8)
+    _, _, _, dets = run_inference(
+        _FakeModel(),
+        img,
+        conf_threshold=0.25,
+        augment=True,
+        enable_crop_refinement=True,
+    )
+    assert len(dets) > 0
+    assert any(d["label"] == "person" for d in dets)
+
+
+def test_performance_profile_boosted():
+    from src.config.settings import PERFORMANCE_MODES
+    assert "boosted" in PERFORMANCE_MODES
+    boosted = PERFORMANCE_MODES["boosted"]
+    assert boosted.augment is True
+    assert boosted.crop_refine is True
+    assert boosted.inference_size >= 960

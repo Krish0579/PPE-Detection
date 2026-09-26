@@ -102,24 +102,59 @@ def render(ctx: AppContext) -> None:
     if target_img is not None:
         orig_h, orig_w = target_img.shape[:2]
 
-        view_mode = st.radio(
-            "View Mode",
-            ["Annotated Overlay", "Side-by-Side Comparison"],
-            horizontal=True,
-            key="img_view_mode",
-        )
+        ctrl_col1, ctrl_col2 = st.columns([1, 1])
+        with ctrl_col1:
+            view_mode = st.radio(
+                "View Mode",
+                ["Annotated Overlay", "Side-by-Side Comparison"],
+                horizontal=True,
+                key="img_view_mode",
+            )
+        with ctrl_col2:
+            inspect_precision = st.selectbox(
+                "Inspection Precision Profile",
+                [
+                    "✨ Max AI Accuracy Boost (960px + TTA + Crop Scan)",
+                    "Deep High-Res (960px Standard)",
+                    "Fast Inspection (640px)",
+                ],
+                index=0,
+                key="img_inspect_precision",
+                help="Max AI Accuracy Boost runs hierarchical person-crop super-resolution and TTA to detect small PPE (goggles, gloves, boots).",
+            )
 
         # Run pipeline inference with force_infer and render onto high-clarity canvas
         target_mode = "8K"
         image_digest = hashlib.sha256(target_img.tobytes()).hexdigest()
-        img_fingerprint = f"{target_img.shape}_{image_digest}_{target_mode}"
+        img_fingerprint = f"{target_img.shape}_{image_digest}_{target_mode}_{inspect_precision}"
         cached_eval = st.session_state.get("_img_analysis_cache")
         if cached_eval and cached_eval.get("fingerprint") == img_fingerprint:
             annotated_img = cached_eval["annotated_img"]
             data = cached_eval["data"]
         else:
-            _ = pipeline.process_numpy_frame(target_img.copy(), force_infer=True)
-            data = STATE.snapshot_ui()
+            orig_mode = STATE.mode_key
+            orig_acc = getattr(STATE, "accuracy_boost", False)
+            orig_crop = getattr(STATE, "crop_refine", False)
+            if "Max AI Accuracy Boost" in inspect_precision:
+                STATE.mode_key = "boosted"
+                STATE.accuracy_boost = True
+                STATE.crop_refine = True
+            elif "960px" in inspect_precision:
+                STATE.mode_key = "precision"
+                STATE.accuracy_boost = False
+                STATE.crop_refine = False
+            else:
+                STATE.mode_key = "balanced"
+                STATE.accuracy_boost = False
+                STATE.crop_refine = False
+            try:
+                _ = pipeline.process_numpy_frame(target_img.copy(), force_infer=True)
+                data = STATE.snapshot_ui()
+            finally:
+                STATE.mode_key = orig_mode
+                STATE.accuracy_boost = orig_acc
+                STATE.crop_refine = orig_crop
+
             render_fn = getattr(pipeline.renderer, "render_8k_clarity_canvas", render_8k_clarity_canvas)
             render_kwargs = {
                 "workers": data["workers"],
@@ -132,6 +167,10 @@ def render(ctx: AppContext) -> None:
                 "fps": pipeline.smoothed_fps,
                 "violations_count": sum(1 for w in data["workers"] if w.has_active_violation),
                 "inference_ms": data["inference_ms"],
+                "show_labels": getattr(STATE, "overlay_show_labels", True),
+                "show_conf_pct": getattr(STATE, "overlay_show_conf_pct", True),
+                "show_corner_brackets": getattr(STATE, "overlay_show_corner_brackets", True),
+                "show_status_pills": getattr(STATE, "overlay_show_status_pills", True),
             }
             try:
                 annotated_img = render_fn(target_img, **render_kwargs)

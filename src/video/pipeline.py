@@ -52,6 +52,8 @@ class TelemetryState:
     mirror: bool = False
     show_hud: bool = True
     associate_workers: bool = True
+    accuracy_boost: bool = False
+    crop_refine: bool = False
     required_ppe: dict[str, bool] = field(
         default_factory=lambda: {
             "helmet": True,
@@ -100,6 +102,8 @@ class TelemetryState:
         show_hud: bool = True,
         associate_workers: bool = True,
         required_ppe: dict[str, bool] | None = None,
+        accuracy_boost: bool | None = None,
+        crop_refine: bool | None = None,
     ) -> None:
         with self.lock:
             self.conf = conf
@@ -113,6 +117,10 @@ class TelemetryState:
             self.associate_workers = associate_workers
             if required_ppe is not None:
                 self.required_ppe = dict(required_ppe)
+            if accuracy_boost is not None:
+                self.accuracy_boost = accuracy_boost
+            if crop_refine is not None:
+                self.crop_refine = crop_refine
 
     def get_config(self) -> tuple[float, float, dict[str, float], str, bool, bool, bool, bool, dict[str, bool]]:
         with self.lock:
@@ -374,6 +382,8 @@ class VideoPipeline:
         if should_infer:
             t0 = time.perf_counter()
             try:
+                use_augment = getattr(profile, "augment", False) or getattr(self.state, "accuracy_boost", False)
+                use_crop_refine = getattr(profile, "crop_refine", False) or getattr(self.state, "crop_refine", False)
                 with self.infer_lock:
                     boxes, scores, labels, detections = run_inference(
                         model=self.model,
@@ -384,6 +394,8 @@ class VideoPipeline:
                         image_size=profile.inference_size,
                         device=self.device,
                         half=self.half,
+                        augment=use_augment,
+                        enable_crop_refinement=use_crop_refine,
                     )
                 dt = max(time.perf_counter() - t0, 1e-6)
                 instant_fps = 1.0 / dt
