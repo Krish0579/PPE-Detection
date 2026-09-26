@@ -378,7 +378,7 @@ def render_compliance_panel(
                             stroke-dasharray="{stroke_dash}" stroke-linecap="round"/>
                     </svg>
                     <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-                        <strong style="font-size: 28px; font-weight: 800; color: var(--heading); line-height: 1;">{safety_score:.0f}<small style="font-size: 16px; color: var(--green);">%</small></strong>
+                        <strong style="font-size: 28px; font-weight: 800; color: var(--heading); line-height: 1;">{safety_score:.0f}<small style="font-size: 16px; color: {donut_color};">%</small></strong>
                         <span style="font-size: 10.5px; color: var(--muted); margin-top: 3px; font-weight: 600;">Overall score</span>
                     </div>
                 </div>
@@ -1346,10 +1346,13 @@ def render_printable_safety_certificate(cert_data: dict) -> None:
     workers_detail = cert_data.get("workers_detail", [])
     workers_html = ""
     for wd in workers_detail:
-        name = wd.get("name", "Unknown")
-        wd_status = wd.get("status", "Unknown")
-        missing = ", ".join(wd.get("missing_ppe", [])) or "None"
-        workers_html += f'<tr><td style="padding:6px 10px;border-bottom:1px solid var(--line);">{name}</td><td style="padding:6px 10px;border-bottom:1px solid var(--line);">{wd_status}</td><td style="padding:6px 10px;border-bottom:1px solid var(--line);">{missing}</td></tr>'
+        name = wd.get("name") or (f"Worker #{wd.get('worker_id', 0):02d}" if "worker_id" in wd else "Unknown")
+        wd_status = wd.get("status") or ("COMPLIANT" if wd.get("is_compliant") else "VIOLATION")
+        raw_missing = wd.get("missing_ppe") or wd.get("violations", [])
+        missing = ", ".join(raw_missing) if isinstance(raw_missing, (list, tuple)) else str(raw_missing)
+        missing = missing or "None"
+        tone_color = "var(--green)" if "COMPLIANT" in str(wd_status).upper() else "var(--red)"
+        workers_html += f'<tr><td style="padding:7px 10px;border-bottom:1px solid var(--line);font-weight:600;">{name}</td><td style="padding:7px 10px;border-bottom:1px solid var(--line);color:{tone_color};font-weight:700;">{wd_status}</td><td style="padding:7px 10px;border-bottom:1px solid var(--line);">{missing}</td></tr>'
 
     if not workers_html:
         workers_html = '<tr><td colspan="3" style="padding:10px;text-align:center;color:var(--muted);">No personnel data for this session.</td></tr>'

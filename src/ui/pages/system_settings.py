@@ -193,7 +193,7 @@ def render(ctx: AppContext) -> None:
         usage_pct = min(100, (storage_info["file_count"] / max(1, storage_info["max_snapshots_configured"])) * 100)
         st.progress(usage_pct / 100, text=f"Snapshot retention: {storage_info['file_count']} / {storage_info['max_snapshots_configured']} ({usage_pct:.0f}%)")
         
-        col_prune1, col_prune2 = st.columns([2, 1])
+        col_prune1, col_prune2 = st.columns([2, 1], vertical_alignment="bottom")
         with col_prune1:
             prune_hours = st.number_input(
                 "Prune captures older than (hours)",
@@ -202,7 +202,7 @@ def render(ctx: AppContext) -> None:
                 value=24,
                 step=1,
                 key="prune_hours_input",
-                help="Snapshots older than this will be permanently deleted"
+                help="Snapshots older than this will be permanently deleted",
             )
         with col_prune2:
             if st.button("🧹 Clear Stale Captures", key="btn_prune_stale", use_container_width=True, type="primary"):

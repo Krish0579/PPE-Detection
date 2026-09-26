@@ -39,6 +39,10 @@ def get_safesight_css(theme_mode: str = "light") -> str:
     --blue-soft: {T['blue_soft']};
     --hover: {T['hover']};
     --input: {T['input']};
+    --border: {T['line']};
+    --card-bg: {T['panel']};
+    --text-secondary: {T['secondary']};
+    --bg-hover: {T['hover']};
 }}
 
 /* Completely hide Streamlit's default top header bar, deploy button, toolbar, and decorations */

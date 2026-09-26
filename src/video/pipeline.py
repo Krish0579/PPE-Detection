@@ -61,6 +61,10 @@ class TelemetryState:
             "goggles": True,
         }
     )
+    overlay_show_labels: bool = True
+    overlay_show_conf_pct: bool = True
+    overlay_show_corner_brackets: bool = True
+    overlay_show_status_pills: bool = True
 
     # Real-time state
     counts: Counter = field(default_factory=Counter)
@@ -447,7 +451,13 @@ class VideoPipeline:
         try:
             if assoc_workers and self.last_workers:
                 # In worker association mode, worker badges cleanly show the worker's status
-                img = self.renderer.draw_worker_badges(img, self.last_workers)
+                img = self.renderer.draw_worker_badges(
+                    img,
+                    self.last_workers,
+                    show_labels=getattr(self.state, "overlay_show_labels", True),
+                    show_corner_brackets=getattr(self.state, "overlay_show_corner_brackets", True),
+                    show_status_pills=getattr(self.state, "overlay_show_status_pills", True),
+                )
                 # Only draw compliance/violation badges that belong to workers
                 ppe_boxes = []
                 ppe_labels = []
@@ -463,9 +473,18 @@ class VideoPipeline:
                         np.array(ppe_boxes, dtype=np.float32),
                         ppe_labels,
                         np.array(ppe_scores, dtype=np.float32),
+                        show_conf_pct=getattr(self.state, "overlay_show_conf_pct", True),
+                        show_corner_brackets=getattr(self.state, "overlay_show_corner_brackets", True),
                     )
             else:
-                img = self.renderer.draw_detections(img, self.last_boxes, self.last_labels, self.last_scores)
+                img = self.renderer.draw_detections(
+                    img,
+                    self.last_boxes,
+                    self.last_labels,
+                    self.last_scores,
+                    show_conf_pct=getattr(self.state, "overlay_show_conf_pct", True),
+                    show_corner_brackets=getattr(self.state, "overlay_show_corner_brackets", True),
+                )
 
             violations_now = sum(1 for d in self.last_detections if d["violation"])
             workers_now = sum(1 for d in self.last_detections if is_person(d["label"]))

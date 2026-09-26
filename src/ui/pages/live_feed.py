@@ -233,35 +233,35 @@ def render(ctx: AppContext) -> None:
                 lbl = st.checkbox(
                     "Show Labels (Worker # · Status)",
                     value=st.session_state.overlay_show_labels,
-                    key="overlay_show_labels_chk"
+                    key="overlay_show_labels_chk",
                 )
-                if lbl != st.session_state.overlay_show_labels:
-                    st.session_state.overlay_show_labels = lbl
-                
+                st.session_state.overlay_show_labels = lbl
+                STATE.overlay_show_labels = lbl
+
                 brk = st.checkbox(
                     "Show Corner Brackets",
                     value=st.session_state.overlay_show_corner_brackets,
-                    key="overlay_show_brackets_chk"
+                    key="overlay_show_brackets_chk",
                 )
-                if brk != st.session_state.overlay_show_corner_brackets:
-                    st.session_state.overlay_show_corner_brackets = brk
-            
+                st.session_state.overlay_show_corner_brackets = brk
+                STATE.overlay_show_corner_brackets = brk
+
             with c2:
                 conf = st.checkbox(
                     "Show Confidence %",
                     value=st.session_state.overlay_show_conf_pct,
-                    key="overlay_show_conf_chk"
+                    key="overlay_show_conf_chk",
                 )
-                if conf != st.session_state.overlay_show_conf_pct:
-                    st.session_state.overlay_show_conf_pct = conf
-                
+                st.session_state.overlay_show_conf_pct = conf
+                STATE.overlay_show_conf_pct = conf
+
                 pills = st.checkbox(
                     "Show PPE Status Pills",
                     value=st.session_state.overlay_show_status_pills,
-                    key="overlay_show_pills_chk"
+                    key="overlay_show_pills_chk",
                 )
-                if pills != st.session_state.overlay_show_status_pills:
-                    st.session_state.overlay_show_status_pills = pills
+                st.session_state.overlay_show_status_pills = pills
+                STATE.overlay_show_status_pills = pills
 
     if feed_source == "🌐 Continuous Video Stream (WebRTC · 30 FPS)":
         if camera_manager.is_running:

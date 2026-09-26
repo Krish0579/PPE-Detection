@@ -1,3 +1,4 @@
+import csv
 import io
 import json
 import logging
@@ -798,25 +799,38 @@ class EvidenceManager:
                 
                 w_data["violations"].append(f"{dt_str}: {violation_type} ({status})")
 
-        # Generate CSV rows
-        csv_lines = ["Timestamp,Worker ID,Zone,Helmet,Vest,Gloves,Boots,Goggles,Compliance Status,Incident Note"]
-        
+        # Generate RFC 4180 compliant CSV content
+        out_buf = io.StringIO()
+        writer = csv.writer(out_buf)
+        writer.writerow([
+            "Timestamp", "Worker ID", "Zone", "Helmet", "Vest",
+            "Gloves", "Boots", "Goggles", "Compliance Status", "Incident Note"
+        ])
+
         for worker_id, data in sorted(worker_compliance.items()):
             dt_str = datetime.fromtimestamp(data["last_update"]).strftime("%Y-%m-%d %H:%M:%S")
-            
+
             # Determine overall compliance
             required = ["helmet", "vest", "boots", "gloves", "goggles"]
             has_violation = any(data.get(k) == "VIOLATION" for k in required)
             compliance_status = "NON-COMPLIANT" if has_violation else "COMPLIANT"
-            
-            incident_note = "; ".join(data["violations"][-3:]) if data["violations"] else "No violations recorded"
-            
-            csv_lines.append(
-                f"{dt_str},{worker_id},{data['zone']},{data['helmet']},{data['vest']},"
-                f"{data['gloves']},{data['boots']},{data['goggles']},{compliance_status},{incident_note}"
-            )
 
-        return "\n".join(csv_lines)
+            incident_note = "; ".join(data["violations"][-3:]) if data["violations"] else "No violations recorded"
+
+            writer.writerow([
+                dt_str,
+                f"Worker #{worker_id:02d}",
+                data["zone"],
+                data["helmet"],
+                data["vest"],
+                data["gloves"],
+                data["boots"],
+                data["goggles"],
+                compliance_status,
+                incident_note,
+            ])
+
+        return out_buf.getvalue()
 
     def get_storage_telemetry(self) -> dict[str, Any]:
         """Return storage usage statistics for the evidence directory."""

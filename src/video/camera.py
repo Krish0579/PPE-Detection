@@ -257,8 +257,20 @@ class OpenCVCameraManager:
                 if pipe is not None and hasattr(pipe, "renderer"):
                     try:
                         annotated = pipe.renderer.enhance_visual_clarity(frame.copy(), strength=0.25)
+                        state = getattr(pipe, "state", None)
+                        show_lbl = getattr(state, "overlay_show_labels", True) if state else True
+                        show_brk = getattr(state, "overlay_show_corner_brackets", True) if state else True
+                        show_conf = getattr(state, "overlay_show_conf_pct", True) if state else True
+                        show_pills = getattr(state, "overlay_show_status_pills", True) if state else True
+
                         if pipe.last_workers:
-                            annotated = pipe.renderer.draw_worker_badges(annotated, pipe.last_workers)
+                            annotated = pipe.renderer.draw_worker_badges(
+                                annotated,
+                                pipe.last_workers,
+                                show_labels=show_lbl,
+                                show_corner_brackets=show_brk,
+                                show_status_pills=show_pills,
+                            )
                             # Draw individual PPE boxes
                             ppe_boxes = []
                             ppe_labels = []
@@ -274,6 +286,8 @@ class OpenCVCameraManager:
                                     np.array(ppe_boxes, dtype=np.float32),
                                     ppe_labels,
                                     np.array(ppe_scores, dtype=np.float32),
+                                    show_conf_pct=show_conf,
+                                    show_corner_brackets=show_brk,
                                 )
                         else:
                             if len(pipe.last_boxes) > 0:
@@ -282,6 +296,8 @@ class OpenCVCameraManager:
                                     pipe.last_boxes,
                                     pipe.last_labels,
                                     pipe.last_scores,
+                                    show_conf_pct=show_conf,
+                                    show_corner_brackets=show_brk,
                                 )
 
                         viol_now = sum(1 for w in pipe.last_workers if w.has_active_violation)

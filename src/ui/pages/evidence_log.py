@@ -329,17 +329,18 @@ def render(ctx: AppContext) -> None:
 
         # Also provide ZIP export of snapshots (U8: guarded behind an explicit
         # confirmation so a stray click can't bulk-export the evidence store)
-        recent_records = [
-            {"datetime": s.name, "ts": s.stat().st_mtime, "jpeg": s.read_bytes()}
-            for s in sorted(EVIDENCE_MGR.storage_dir.glob("viol_*.jpg"), reverse=True)[:50]
-        ]
-        if recent_records:
+        recent_files = sorted(EVIDENCE_MGR.storage_dir.glob("viol_*.jpg"), reverse=True)[:50]
+        if recent_files:
             confirm_zip = st.checkbox(
-                f"Confirm bulk archive of {len(recent_records)} stored snapshots",
+                f"Confirm bulk archive of {len(recent_files)} stored snapshots",
                 key="confirm_zip_export",
                 help="Bulk exports include every retained violation capture. This confirmation prevents accidental evidence downloads on shared workstations.",
             )
             if confirm_zip:
+                recent_records = [
+                    {"datetime": s.name, "ts": s.stat().st_mtime, "jpeg": s.read_bytes()}
+                    for s in recent_files
+                ]
                 zip_bytes = EVIDENCE_MGR.create_zip_archive(recent_records)
                 st.download_button(
                     label="📦 Download Complete Incident Archive (ZIP + Manifest)",
@@ -375,17 +376,15 @@ def render(ctx: AppContext) -> None:
             
             session_id = None if selected_session == "Current Session (All Events)" else int(selected_session.split("#")[1].split(" ")[0])
             
-            if st.button("📥 Export Shift Audit (.CSV)", key="export_shift_audit_csv", use_container_width=True):
-                csv_content = EVIDENCE_MGR.export_shift_audit_csv(session_id=session_id)
-                st.download_button(
-                    label="⬇️ Download CSV",
-                    data=csv_content,
-                    file_name=f"safesight_shift_audit_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv",
-                    use_container_width=True,
-                    key="dl_shift_audit_csv"
-                )
-                st.success("Shift audit CSV generated! Click 'Download CSV' above.")
+            csv_content = EVIDENCE_MGR.export_shift_audit_csv(session_id=session_id)
+            st.download_button(
+                label="📥 Download Shift Audit (.CSV)",
+                data=csv_content,
+                file_name=f"safesight_shift_audit_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key=f"dl_shift_audit_csv_{session_id}"
+            )
         
         with col_print:
             st.markdown("**Print-Ready Executive Safety Report**")
@@ -395,6 +394,7 @@ def render(ctx: AppContext) -> None:
             workers_detail = []
             for w in snap_data["workers"]:
                 workers_detail.append({
+                    "name": f"Worker #{w.worker_id:02d}",
                     "worker_id": w.worker_id,
                     "zone": w.zone,
                     "helmet": w.helmet_status,
@@ -402,7 +402,9 @@ def render(ctx: AppContext) -> None:
                     "gloves": w.gloves_status,
                     "boots": w.boots_status,
                     "goggles": w.goggles_status,
+                    "status": "COMPLIANT" if w.is_compliant else "VIOLATION",
                     "is_compliant": w.is_compliant,
+                    "missing_ppe": w.violations,
                     "violations": w.violations,
                 })
             
