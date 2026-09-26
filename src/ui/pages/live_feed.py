@@ -39,6 +39,7 @@ from src.config.settings import DEFAULT_ZONES
 from src.ui.app_context import AppContext
 from src.ui.components import (
     build_workers_status_dataframe,
+    play_violation_chime,
     render_audio_alert_script,
     render_compliance_panel,
     render_html,
@@ -220,16 +221,8 @@ def render(ctx: AppContext) -> None:
             if audio_enabled:
                 st.caption("🔈 Chime will play on first violation frame (STATE.violation_streak == 1)")
                 if st.button("🔊 Test Chime", key="test_chime_btn"):
-                    render_html(
-                        """
-                        <script>
-                        if (window.__safesight_play_chime) {
-                            window.__safesight_play_chime();
-                        }
-                        </script>
-                        """,
-                    )
-                    st.toast("Test chime played!")
+                    play_violation_chime()
+                    st.toast("🔊 Chime played successfully!")
         
         with col_viewport:
             st.markdown("#### 👁️ Viewport Overlay Toggles")
@@ -276,7 +269,11 @@ def render(ctx: AppContext) -> None:
             st.session_state.cam_stream_active = False
 
         st.caption("Continuous 30 FPS video streaming via browser WebRTC. Click **START** below to begin streaming.")
-        st.info("💡 **Camera Quick Tip**: If WebRTC connection stalls on your network, switch to **'📸 Direct Browser Camera'** above for instant, zero-delay camera access.")
+        st.info(
+            "💡 **Camera & Network Notice**:\n"
+            "- **Secure Context**: Browsers only permit WebRTC over `http://localhost:8501` or `https://`. If accessing over LAN IP (e.g. `http://192.168.x.x:8501`), browser security blocks `navigator.mediaDevices`.\n"
+            "- **Instant Solution**: Switch to **'🔌 Hardware USB Camera (OpenCV)'** above (captures directly on the machine/server without any browser security or driver constraints) or open `http://localhost:8501`."
+        )
 
         def webrtc_video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
             img = frame.to_ndarray(format="bgr24")
@@ -330,20 +327,14 @@ def render(ctx: AppContext) -> None:
             score = 100.0 if total_w == 0 else max(0.0, min(100.0, (safe_w / float(total_w)) * 100.0))
 
             # Audio alarm trigger: check violation_streak == 1 (first frame of new violation sequence)
-            if (st.session_state.audio_alarms_enabled and 
-                hasattr(STATE, 'violation_streak') and 
-                STATE.violation_streak == 1 and
-                st.session_state.last_violation_streak == 0):
+            if (
+                st.session_state.audio_alarms_enabled
+                and hasattr(STATE, "violation_streak")
+                and STATE.violation_streak == 1
+                and st.session_state.last_violation_streak == 0
+            ):
                 st.session_state.last_violation_streak = 1
-                render_html(
-                    """
-                    <script>
-                    if (window.__safesight_play_chime) {
-                        window.__safesight_play_chime();
-                    }
-                    </script>
-                    """,
-                )
+                play_violation_chime()
             elif viol_w == 0:
                 st.session_state.last_violation_streak = 0
 
@@ -414,20 +405,14 @@ def render(ctx: AppContext) -> None:
 
                 # Audio alarm trigger for Direct Browser Camera
                 viol_count = sum(1 for w in data["workers"] if w.has_active_violation)
-                if (st.session_state.audio_alarms_enabled and 
-                    hasattr(STATE, 'violation_streak') and 
-                    STATE.violation_streak == 1 and
-                    st.session_state.last_violation_streak == 0):
+                if (
+                    st.session_state.audio_alarms_enabled
+                    and hasattr(STATE, "violation_streak")
+                    and STATE.violation_streak == 1
+                    and st.session_state.last_violation_streak == 0
+                ):
                     st.session_state.last_violation_streak = 1
-                    render_html(
-                        """
-                        <script>
-                        if (window.__safesight_play_chime) {
-                            window.__safesight_play_chime();
-                        }
-                        </script>
-                        """,
-                    )
+                    play_violation_chime()
                 elif viol_count == 0:
                     st.session_state.last_violation_streak = 0
 
@@ -575,20 +560,14 @@ def render(ctx: AppContext) -> None:
             score = 100.0 if total_w == 0 else max(0.0, min(100.0, (safe_w / float(total_w)) * 100.0))
 
             # Audio alarm trigger: check violation_streak == 1 (first frame of new violation sequence)
-            if (st.session_state.audio_alarms_enabled and 
-                hasattr(STATE, 'violation_streak') and 
-                STATE.violation_streak == 1 and
-                st.session_state.last_violation_streak == 0):
+            if (
+                st.session_state.audio_alarms_enabled
+                and hasattr(STATE, "violation_streak")
+                and STATE.violation_streak == 1
+                and st.session_state.last_violation_streak == 0
+            ):
                 st.session_state.last_violation_streak = 1
-                render_html(
-                    """
-                    <script>
-                    if (window.__safesight_play_chime) {
-                        window.__safesight_play_chime();
-                    }
-                    </script>
-                    """,
-                )
+                play_violation_chime()
             elif viol_w == 0:
                 st.session_state.last_violation_streak = 0
 

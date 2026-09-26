@@ -7,7 +7,12 @@ Zero HTML leaks via strict whitespace minification.
 """
 from __future__ import annotations
 
+import base64
+import functools
+import io
+import math
 import re
+import struct
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -15,6 +20,7 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as st_components
 
 from src.config.settings import DEFAULT_ZONES, ZoneConfig
 from src.core.class_semantics import (
@@ -1397,34 +1403,66 @@ def render_printable_safety_certificate(cert_data: dict) -> None:
     )
 
 
+@functools.lru_cache(maxsize=1)
+def _get_chime_wav_b64() -> str:
+    """Generate a crisp, harmonious two-tone industrial safety chime in PCM WAV format."""
+    sample_rate = 22050
+    duration = 0.38  # 380ms total
+    num_samples = int(sample_rate * duration)
+    buf = io.BytesIO()
+    # RIFF header
+    buf.write(b"RIFF")
+    buf.write(struct.pack("<I", 36 + num_samples * 2))
+    buf.write(b"WAVEfmt ")
+    buf.write(struct.pack("<IHHIIHH", 16, 1, 1, sample_rate, sample_rate * 2, 2, 16))
+    buf.write(b"data")
+    buf.write(struct.pack("<I", num_samples * 2))
+
+    for i in range(num_samples):
+        t = i / sample_rate
+        # Tone 1: 880Hz (A5) for 140ms, Tone 2: 587.33Hz (D5) harmonic resolution
+        if t < 0.14:
+            phase = 2 * math.pi * 880.0 * t
+        else:
+            phase = 2 * math.pi * 880.0 * 0.14 + 2 * math.pi * 587.33 * (t - 0.14)
+        decay = math.exp(-5.2 * t)
+        sample = int(0.75 * math.sin(phase) * decay * 32767)
+        buf.write(struct.pack("<h", max(-32768, min(32767, sample))))
+
+    return base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def play_violation_chime() -> None:
+    """Play an immediate, reliable industrial safety chime in the user's browser."""
+    wav_b64 = _get_chime_wav_b64()
+    chime_html = f"""
+    <audio autoplay="autoplay" style="display:none;" preload="auto">
+        <source src="data:audio/wav;base64,{wav_b64}" type="audio/wav">
+    </audio>
+    <script>
+    (function() {{
+        try {{
+            var snd = new Audio("data:audio/wav;base64,{wav_b64}");
+            snd.volume = 0.85;
+            var playPromise = snd.play();
+            if (playPromise !== undefined) {{
+                playPromise.catch(function(err) {{
+                    console.log("Audio autoplay constrained by browser policy:", err);
+                }});
+            }}
+        }} catch(e) {{}}
+    }})();
+    </script>
+    """
+    st_components.html(chime_html, height=0, width=0)
+
+
 def render_audio_alert_script(active: bool = False) -> None:
-    """Inject a Web Audio API chime synthesizer for violation alerts."""
+    """Prepare audio playback infrastructure if active."""
     if not active:
         return
-    render_html(
-        """
-        <script>
-        (function() {
-            if (window.__safesight_play_chime) return;
-            window.__safesight_play_chime = function() {
-                try {
-                    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    var osc = ctx.createOscillator();
-                    var gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(880, ctx.currentTime);
-                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start(ctx.currentTime);
-                    osc.stop(ctx.currentTime + 0.5);
-                } catch(e) {}
-            };
-        })();
-        </script>
-        """
-    )
+    # Pre-warm the cache so audio is instantaneous
+    _get_chime_wav_b64()
 
 
 def render_perf_chip(mode_key: str = "balanced") -> None:
