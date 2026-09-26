@@ -153,12 +153,12 @@ def render(ctx: AppContext) -> None:
             c_orig, c_anno = st.columns(2, gap="medium")
             with c_orig:
                 st.caption(f"Original Capture ({orig_w}×{orig_h})")
-                st.image(target_img, channels="BGR", width="stretch")
+                st.image(target_img, channels="BGR", use_container_width=True)
             with c_anno:
                 st.caption("AI Annotated Inspection")
-                st.image(annotated_img, channels="BGR", width="stretch")
+                st.image(annotated_img, channels="BGR", use_container_width=True)
         else:
-            st.image(annotated_img, channels="BGR", width="stretch")
+            st.image(annotated_img, channels="BGR", use_container_width=True)
 
         # U7: FPS/latency telemetry chip on the viewport
         render_perf_chip(data["fps"], data["inference_ms"], label="STATIC INSPECTION")
@@ -177,7 +177,7 @@ def render(ctx: AppContext) -> None:
             if i_workers:
                 render_workers_grid(i_workers)
                 st.markdown("#### Detailed Safety & PPE Category Breakdown")
-                st.dataframe(build_workers_status_dataframe(i_workers), width="stretch", hide_index=True)
+                st.dataframe(build_workers_status_dataframe(i_workers), use_container_width=True, hide_index=True)
             else:
                 st.info("No personnel anchors identified in this photograph.")
 
@@ -193,7 +193,7 @@ def render(ctx: AppContext) -> None:
                     }
                     for d in i_dets
                 ])
-                st.dataframe(df_dets, width="stretch", hide_index=True)
+                st.dataframe(df_dets, use_container_width=True, hide_index=True)
             else:
                 st.info("No objects detected above the confidence threshold.")
 
@@ -210,10 +210,10 @@ def render(ctx: AppContext) -> None:
                     data=buf_enc.tobytes(),
                     file_name=f"inspected_{source_name}.jpg",
                     mime="image/jpeg",
-                    width="stretch",
+                    use_container_width=True,
                 )
         with col_exp2:
-            if st.button("💾 Save Inspection to Evidence Log", width="stretch"):
+            if st.button("💾 Save Inspection to Evidence Log", use_container_width=True):
                 v_labels = [d["label"] for d in i_dets if d.get("violation", False)]
                 for w in i_workers:
                     if w.has_active_violation:

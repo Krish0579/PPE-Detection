@@ -113,7 +113,7 @@ def render(ctx: AppContext) -> None:
                             st.session_state["latest_annotated_frame"] = annotated_frame
 
                             # Video viewport
-                            st.image(annotated_frame, channels="BGR", width="stretch")
+                            st.image(annotated_frame, channels="BGR", use_container_width=True)
 
                             data = STATE.snapshot_ui()
                             # U7: FPS/latency telemetry chip on the viewport
@@ -130,11 +130,11 @@ def render(ctx: AppContext) -> None:
                                 st.markdown("#### Frame Personnel & PPE Inspection")
                                 render_workers_grid(v_workers)
                                 with st.expander("📋 Detailed Personnel Safety & PPE Checklist (All 5 Categories)", expanded=True):
-                                    st.dataframe(build_workers_status_dataframe(v_workers), width="stretch", hide_index=True)
+                                    st.dataframe(build_workers_status_dataframe(v_workers), use_container_width=True, hide_index=True)
 
                             col_save1, col_save2 = st.columns([2, 2])
                             with col_save1:
-                                if st.button("💾 Save Frame Snapshot to Evidence Archive", width="stretch"):
+                                if st.button("💾 Save Frame Snapshot to Evidence Archive", use_container_width=True):
                                     v_labels = [d["label"] for d in data["detections"] if d.get("violation", False)]
                                     for w in v_workers:
                                         if w.has_active_violation:
@@ -153,7 +153,7 @@ def render(ctx: AppContext) -> None:
                                         data=buf_enc.tobytes(),
                                         file_name=f"frame_{current_idx + 1:04d}_{uploaded_video.name}.jpg",
                                         mime="image/jpeg",
-                                        width="stretch",
+                                        use_container_width=True,
                                     )
                         else:
                             st.warning("Could not decode selected frame from video.")

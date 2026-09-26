@@ -110,7 +110,7 @@ def render(ctx: AppContext) -> None:
 
         _c_head, c_reset = st.columns([3, 1])
         with c_reset:
-            if st.button("🧹 Clear Session Log", help="Reset live personnel alert history and re-initialize person tracker", key="btn_reset_personnel_log", width="stretch"):
+            if st.button("🧹 Clear Session Log", help="Reset live personnel alert history and re-initialize person tracker", key="btn_reset_personnel_log", use_container_width=True):
                 if hasattr(STATE, "clear_events"):
                     STATE.clear_events()
                 st.session_state["resolved_person_alerts"] = set()
@@ -161,7 +161,7 @@ def render(ctx: AppContext) -> None:
                 })
 
             if rows:
-                st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     with tab_gallery:
         PAGE_SIZE = 8  # captures per "Load more" window
@@ -214,7 +214,7 @@ def render(ctx: AppContext) -> None:
                 """Lightbox modal (U6): full-size snapshot with metadata, export, and delete."""
                 snap_path = EVIDENCE_MGR.storage_dir / snap["filename"]
                 try:
-                    st.image(str(snap_path), width="stretch")
+                    st.image(str(snap_path), use_container_width=True)
                     f_name = snap["filename"]
                     size_kb = snap.get("size_bytes", 0) / 1024 or snap_path.stat().st_size / 1024
                     labels_str = str(snap.get("labels") or "").replace("-", " ").strip()
@@ -231,7 +231,7 @@ def render(ctx: AppContext) -> None:
                             file_name=f_name,
                             mime="image/jpeg",
                             key=f"dl_snap_modal_{snap_idx}_{f_name}",
-                            width="stretch",
+                            use_container_width=True,
                         )
 
                     # Evidence management: permanent delete behind an explicit
@@ -246,7 +246,7 @@ def render(ctx: AppContext) -> None:
                         "🗑 Delete Capture Permanently",
                         disabled=not del_confirm,
                         key=f"del_snap_{snap_idx}_{f_name}",
-                        width="stretch",
+                        use_container_width=True,
                     ):
                         if EVIDENCE_MGR.delete_snapshot(f_name):
                             st.toast("Snapshot deleted from evidence archive.")
@@ -262,14 +262,14 @@ def render(ctx: AppContext) -> None:
                 c = cols[idx % 4]
                 with c:
                     try:
-                        st.image(str(s_path), width="stretch")
+                        st.image(str(s_path), use_container_width=True)
                         f_name = snap["filename"]
                         mtime_str = datetime.fromtimestamp(snap["timestamp"]).strftime("%H:%M:%S")
                         snap_labels_str = str(snap.get("labels") or "").replace("-", " ")[:26]
                         st.caption(f"🕒 {mtime_str} · {f_name[:20]}")
                         if snap_labels_str:
                             st.caption(f"🏷️ {snap_labels_str}", help=f_name)
-                        if st.button("🔍 Inspect", key=f"inspect_snap_{idx}_{f_name}", width="stretch"):
+                        if st.button("🔍 Inspect", key=f"inspect_snap_{idx}_{f_name}", use_container_width=True):
                             _open_snapshot_detail(snap, idx)
                     except Exception:
                         pass
@@ -277,7 +277,7 @@ def render(ctx: AppContext) -> None:
             if total > shown:
                 c_more, c_hint = st.columns([1, 2])
                 with c_more:
-                    if st.button("⬇️ Load more captures", key="gallery_load_more", width="stretch"):
+                    if st.button("⬇️ Load more captures", key="gallery_load_more", use_container_width=True):
                         st.session_state.gallery_visible += PAGE_SIZE
                         st.rerun()
                 with c_hint:
@@ -346,7 +346,7 @@ def render(ctx: AppContext) -> None:
                     data=zip_bytes,
                     file_name=f"safesight_evidence_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
                     mime="application/zip",
-                    width="stretch",
+                    use_container_width=True,
                 )
             else:
                 st.caption("☑️ Tick the confirmation above to unlock the bulk archive download.")
@@ -375,14 +375,14 @@ def render(ctx: AppContext) -> None:
             
             session_id = None if selected_session == "Current Session (All Events)" else int(selected_session.split("#")[1].split(" ")[0])
             
-            if st.button("📥 Export Shift Audit (.CSV)", key="export_shift_audit_csv", width="stretch"):
+            if st.button("📥 Export Shift Audit (.CSV)", key="export_shift_audit_csv", use_container_width=True):
                 csv_content = EVIDENCE_MGR.export_shift_audit_csv(session_id=session_id)
                 st.download_button(
                     label="⬇️ Download CSV",
                     data=csv_content,
                     file_name=f"safesight_shift_audit_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
-                    width="stretch",
+                    use_container_width=True,
                     key="dl_shift_audit_csv"
                 )
                 st.success("Shift audit CSV generated! Click 'Download CSV' above.")
@@ -419,7 +419,7 @@ def render(ctx: AppContext) -> None:
                 "events": STATE.get_events()[:50],
             }
             
-            if st.button("🖨️ Print Executive Safety Report", key="print_executive_report", width="stretch"):
+            if st.button("🖨️ Print Executive Safety Report", key="print_executive_report", use_container_width=True):
                 st.session_state.show_safety_certificate = True
                 st.session_state.certificate_data = cert_data
             

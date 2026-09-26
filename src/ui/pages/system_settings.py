@@ -205,7 +205,7 @@ def render(ctx: AppContext) -> None:
                 help="Snapshots older than this will be permanently deleted"
             )
         with col_prune2:
-            if st.button("🧹 Clear Stale Captures", key="btn_prune_stale", width="stretch", type="primary"):
+            if st.button("🧹 Clear Stale Captures", key="btn_prune_stale", use_container_width=True, type="primary"):
                 result = EVIDENCE_MGR.prune_stale_snapshots(older_than_hours=int(prune_hours))
                 if result.get("error"):
                     st.error(f"Pruning failed: {result['error']}")

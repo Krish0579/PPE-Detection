@@ -84,12 +84,12 @@ def render_camera_controls_bar(ctx: AppContext, pipeline_ref: VideoPipeline) -> 
     c_btn, c_dev, c_info = st.columns([1.8, 1.4, 2.8])
     with c_btn:
         if is_live:
-            if st.button("⏹ Stop Camera", key="btn_stop_cam", width="stretch"):
+            if st.button("⏹ Stop Camera", key="btn_stop_cam", use_container_width=True):
                 camera_manager.stop()
                 st.session_state["cam_stream_active"] = False
                 st.rerun()
         else:
-            if st.button("▶ Start Camera", key="btn_start_cam", type="primary", width="stretch"):
+            if st.button("▶ Start Camera", key="btn_start_cam", type="primary", use_container_width=True):
                 dev_id = st.session_state.get("opencv_device_idx", 0)
                 camera_manager.start(device_index=dev_id, pipeline_ref=pipeline_ref)
                 st.session_state["cam_stream_active"] = True
@@ -129,7 +129,7 @@ def render_camera_viewport(ctx: AppContext) -> None:
     if is_live:
         frame = camera_manager.get_latest_frame()
         if frame is not None:
-            st.image(frame, channels="BGR", width="stretch")
+            st.image(frame, channels="BGR", use_container_width=True)
             if getattr(camera_manager, "is_simulated", False):
                 sim_why = getattr(camera_manager, "sim_reason", "") or "hardware camera not detected by OpenCV"
                 st.warning(
@@ -368,7 +368,7 @@ def render(ctx: AppContext) -> None:
                 st.markdown("#### Tracked Personnel Compliance Profile")
                 render_workers_grid(workers)
                 with st.expander("📋 Detailed Personnel Safety & PPE Checklist (All 5 Categories)", expanded=True):
-                    st.dataframe(build_workers_status_dataframe(workers), width="stretch", hide_index=True)
+                    st.dataframe(build_workers_status_dataframe(workers), use_container_width=True, hide_index=True)
 
             # Row 4: Zone & Trend
             c_tr, c_zn = st.columns([1.8, 1.2], gap="large")
@@ -446,7 +446,7 @@ def render(ctx: AppContext) -> None:
                         st.session_state.recent_inspections.pop()
                     
                     st.caption(f"Visual viewport · rendered in {t_mode} ({annotated.shape[1]}×{annotated.shape[0]})")
-                    st.image(annotated, channels="BGR", width="stretch")
+                    st.image(annotated, channels="BGR", use_container_width=True)
 
                     ok_enc, buf_enc = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 95])
                     if ok_enc:
@@ -455,7 +455,7 @@ def render(ctx: AppContext) -> None:
                             data=buf_enc.tobytes(),
                             file_name=f"captured_{t_mode.lower()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg",
                             mime="image/jpeg",
-                            width="stretch",
+                            use_container_width=True,
                         )
             else:
                 standby = np.full((400, 700, 3), 245, dtype=np.uint8)
@@ -468,7 +468,7 @@ def render(ctx: AppContext) -> None:
                     (60, 100, 80),
                     2,
                 )
-                st.image(standby, channels="BGR", width="stretch")
+                st.image(standby, channels="BGR", use_container_width=True)
 
             data = STATE.snapshot_ui()
             render_html(
@@ -506,7 +506,7 @@ def render(ctx: AppContext) -> None:
             st.markdown("#### Tracked Personnel Compliance Profile")
             render_workers_grid(workers)
             with st.expander("📋 Detailed Personnel Safety & PPE Checklist (All 5 Categories)", expanded=True):
-                st.dataframe(build_workers_status_dataframe(workers), width="stretch", hide_index=True)
+                st.dataframe(build_workers_status_dataframe(workers), use_container_width=True, hide_index=True)
 
         # Zone & Trend
         c_tr, c_zn = st.columns([1.8, 1.2], gap="large")
@@ -529,14 +529,14 @@ def render(ctx: AppContext) -> None:
                     viol_count = sum(1 for w in insp_workers if w.has_active_violation)
                     badge_text = f"{viol_count} violations" if viol_count > 0 else "Compliant"
                     
-                    st.image(insp_img, channels="BGR", width="stretch", caption=f"{dt_str} · {badge_text}")
+                    st.image(insp_img, channels="BGR", use_container_width=True, caption=f"{dt_str} · {badge_text}")
                     
-                    if st.button("View", key=f"filmstrip_view_{idx}", width="stretch"):
+                    if st.button("View", key=f"filmstrip_view_{idx}", use_container_width=True):
                         # Show larger view in a modal-like expander
                         with st.expander(f"Inspection Detail — {dt_str}", expanded=True):
-                            st.image(insp_img, channels="BGR", width="stretch")
+                            st.image(insp_img, channels="BGR", use_container_width=True)
                             if insp_workers:
-                                st.dataframe(build_workers_status_dataframe(insp_workers), width="stretch", hide_index=True)
+                                st.dataframe(build_workers_status_dataframe(insp_workers), use_container_width=True, hide_index=True)
 
     else:
         # Hardware OpenCV Live Camera
@@ -620,7 +620,7 @@ def render(ctx: AppContext) -> None:
                 st.markdown("#### Tracked Personnel Compliance Profile")
                 render_workers_grid(workers)
                 with st.expander("📋 Detailed Personnel Safety & PPE Checklist (All 5 Categories)", expanded=True):
-                    st.dataframe(build_workers_status_dataframe(workers), width="stretch", hide_index=True)
+                    st.dataframe(build_workers_status_dataframe(workers), use_container_width=True, hide_index=True)
 
             # Row 4: Trend Chart & Zone Occupancy
             c_trend, c_zones = st.columns([1.8, 1.2], gap="large")
