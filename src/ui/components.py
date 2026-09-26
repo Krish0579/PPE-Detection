@@ -1443,14 +1443,25 @@ def play_violation_chime() -> None:
     </audio>
     <script>
     (function() {{
+        var wav = "{wav_b64}";
+        // 1. Try local Audio element
         try {{
-            var snd = new Audio("data:audio/wav;base64,{wav_b64}");
+            var snd = new Audio("data:audio/wav;base64," + wav);
             snd.volume = 0.85;
-            var playPromise = snd.play();
-            if (playPromise !== undefined) {{
-                playPromise.catch(function(err) {{
-                    console.log("Audio autoplay constrained by browser policy:", err);
-                }});
+            var p = snd.play();
+            if (p && p.catch) p.catch(function(e) {{}});
+        }} catch(e) {{}}
+
+        // 2. Dispatch cross-window message to top-level window context
+        try {{
+            if (window.parent && window.parent !== window) {{
+                window.parent.postMessage({{type: 'safesight_play_chime', audio: wav}}, '*');
+                if (window.parent.Audio) {{
+                    var pSnd = new window.parent.Audio("data:audio/wav;base64," + wav);
+                    pSnd.volume = 0.85;
+                    var p2 = pSnd.play();
+                    if (p2 && p2.catch) p2.catch(function(e) {{}});
+                }}
             }}
         }} catch(e) {{}}
     }})();
@@ -1460,11 +1471,46 @@ def play_violation_chime() -> None:
 
 
 def render_audio_alert_script(active: bool = False) -> None:
-    """Prepare audio playback infrastructure if active."""
+    """Prepare audio playback infrastructure and unlock Web Audio API on first user gesture."""
     if not active:
         return
-    # Pre-warm the cache so audio is instantaneous
+    # Pre-warm the cache so audio generation is instantaneous
     _get_chime_wav_b64()
+    # Install listener in host page to bypass iframe autoplay sandboxes
+    st_components.html(
+        """
+        <script>
+        (function() {
+            if (window._safesight_audio_bridge_ready) return;
+            window._safesight_audio_bridge_ready = true;
+
+            function unlock() {
+                try {
+                    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (ctx && ctx.state === 'suspended') ctx.resume();
+                } catch(e) {}
+                window.removeEventListener('click', unlock);
+                window.removeEventListener('keydown', unlock);
+            }
+            window.addEventListener('click', unlock);
+            window.addEventListener('keydown', unlock);
+
+            window.addEventListener('message', function(ev) {
+                if (ev.data && ev.data.type === 'safesight_play_chime' && ev.data.audio) {
+                    try {
+                        var a = new Audio('data:audio/wav;base64,' + ev.data.audio);
+                        a.volume = 0.85;
+                        var p = a.play();
+                        if (p && p.catch) p.catch(function() {});
+                    } catch(e) {}
+                }
+            });
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
 
 def render_perf_chip(

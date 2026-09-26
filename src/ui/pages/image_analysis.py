@@ -121,19 +121,27 @@ def render(ctx: AppContext) -> None:
             _ = pipeline.process_numpy_frame(target_img.copy(), force_infer=True)
             data = STATE.snapshot_ui()
             render_fn = getattr(pipeline.renderer, "render_8k_clarity_canvas", render_8k_clarity_canvas)
-            annotated_img = render_fn(
-                target_img,
-                workers=data["workers"],
-                boxes=pipeline.last_boxes,
-                labels=pipeline.last_labels,
-                scores=pipeline.last_scores,
-                target_mode=target_mode,
-                enhance_sharpness=True,
-                show_hud=True,
-                fps=pipeline.smoothed_fps,
-                violations_count=sum(1 for w in data["workers"] if w.has_active_violation),
-                inference_ms=data["inference_ms"],
-            )
+            render_kwargs = {
+                "workers": data["workers"],
+                "boxes": pipeline.last_boxes,
+                "labels": pipeline.last_labels,
+                "scores": pipeline.last_scores,
+                "target_mode": target_mode,
+                "enhance_sharpness": True,
+                "show_hud": True,
+                "fps": pipeline.smoothed_fps,
+                "violations_count": sum(1 for w in data["workers"] if w.has_active_violation),
+                "inference_ms": data["inference_ms"],
+            }
+            try:
+                annotated_img = render_fn(target_img, **render_kwargs)
+            except TypeError:
+                import importlib
+
+                import src.video.renderer as _rmod
+                _rmod = importlib.reload(_rmod)
+                pipeline.renderer = _rmod.OverlayRenderer()
+                annotated_img = pipeline.renderer.render_8k_clarity_canvas(target_img, **render_kwargs)
             st.session_state["_img_analysis_cache"] = {
                 "fingerprint": img_fingerprint,
                 "annotated_img": annotated_img,

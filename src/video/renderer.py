@@ -491,22 +491,39 @@ def render_8k_clarity_canvas(
     **kwargs: Any,
 ) -> np.ndarray:
     """Module-level helper to render on 8K/4K/1080p canvas."""
-    return get_default_renderer().render_8k_clarity_canvas(
-        frame=frame,
-        workers=workers,
-        boxes=boxes,
-        labels=labels,
-        scores=scores,
-        target_mode=target_mode,
-        enhance_sharpness=enhance_sharpness,
-        show_hud=show_hud,
-        fps=fps,
-        violations_count=violations_count,
-        inference_ms=inference_ms,
-        simulated=simulated,
-        show_labels=show_labels,
-        show_conf_pct=show_conf_pct,
-        show_corner_brackets=show_corner_brackets,
-        show_status_pills=show_status_pills,
-        **kwargs,
-    )
+    renderer = get_default_renderer()
+    try:
+        return renderer.render_8k_clarity_canvas(
+            frame=frame,
+            workers=workers,
+            boxes=boxes,
+            labels=labels,
+            scores=scores,
+            target_mode=target_mode,
+            enhance_sharpness=enhance_sharpness,
+            show_hud=show_hud,
+            fps=fps,
+            violations_count=violations_count,
+            inference_ms=inference_ms,
+            simulated=simulated,
+            show_labels=show_labels,
+            show_conf_pct=show_conf_pct,
+            show_corner_brackets=show_corner_brackets,
+            show_status_pills=show_status_pills,
+            **kwargs,
+        )
+    except TypeError:
+        return renderer.render_8k_clarity_canvas(
+            frame=frame,
+            workers=workers,
+            boxes=boxes,
+            labels=labels,
+            scores=scores,
+            target_mode=target_mode,
+            enhance_sharpness=enhance_sharpness,
+            show_hud=show_hud,
+            fps=fps,
+            violations_count=violations_count,
+            inference_ms=inference_ms,
+            simulated=simulated,
+        )

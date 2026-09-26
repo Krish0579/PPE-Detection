@@ -314,7 +314,15 @@ class VideoPipeline:
         """Forwarder to OverlayRenderer.render_8k_clarity_canvas."""
         if not hasattr(self.renderer, "render_8k_clarity_canvas"):
             self.renderer = OverlayRenderer()
-        return self.renderer.render_8k_clarity_canvas(*args, **kwargs)
+        try:
+            return self.renderer.render_8k_clarity_canvas(*args, **kwargs)
+        except TypeError:
+            import importlib
+
+            import src.video.renderer as _rmod
+            _rmod = importlib.reload(_rmod)
+            self.renderer = _rmod.OverlayRenderer()
+            return self.renderer.render_8k_clarity_canvas(*args, **kwargs)
 
     def reset_tracker(self) -> None:
         """Reset the internal worker tracker and identity gallery."""

@@ -419,23 +419,31 @@ def render(ctx: AppContext) -> None:
                 if raw_img is not None:
                     t_mode = "8K"
                     render_fn = getattr(pipeline.renderer, "render_8k_clarity_canvas", render_8k_clarity_canvas)
-                    annotated = render_fn(
-                        raw_img,
-                        workers=data["workers"],
-                        boxes=pipeline.last_boxes,
-                        labels=pipeline.last_labels,
-                        scores=pipeline.last_scores,
-                        target_mode=t_mode,
-                        enhance_sharpness=True,
-                        show_hud=True,
-                        fps=pipeline.smoothed_fps,
-                        violations_count=sum(1 for w in data["workers"] if w.has_active_violation),
-                        inference_ms=data["inference_ms"],
-                        show_labels=st.session_state.overlay_show_labels,
-                        show_conf_pct=st.session_state.overlay_show_conf_pct,
-                        show_corner_brackets=st.session_state.overlay_show_corner_brackets,
-                        show_status_pills=st.session_state.overlay_show_status_pills,
-                    )
+                    render_kwargs = {
+                        "workers": data["workers"],
+                        "boxes": pipeline.last_boxes,
+                        "labels": pipeline.last_labels,
+                        "scores": pipeline.last_scores,
+                        "target_mode": t_mode,
+                        "enhance_sharpness": True,
+                        "show_hud": True,
+                        "fps": pipeline.smoothed_fps,
+                        "violations_count": sum(1 for w in data["workers"] if w.has_active_violation),
+                        "inference_ms": data["inference_ms"],
+                        "show_labels": st.session_state.overlay_show_labels,
+                        "show_conf_pct": st.session_state.overlay_show_conf_pct,
+                        "show_corner_brackets": st.session_state.overlay_show_corner_brackets,
+                        "show_status_pills": st.session_state.overlay_show_status_pills,
+                    }
+                    try:
+                        annotated = render_fn(raw_img, **render_kwargs)
+                    except TypeError:
+                        import importlib
+
+                        import src.video.renderer as _rmod
+                        _rmod = importlib.reload(_rmod)
+                        pipeline.renderer = _rmod.OverlayRenderer()
+                        annotated = pipeline.renderer.render_8k_clarity_canvas(raw_img, **render_kwargs)
                     st.session_state["latest_annotated_frame"] = annotated
                     
                     # Add to session inspection filmstrip (cap at 5)

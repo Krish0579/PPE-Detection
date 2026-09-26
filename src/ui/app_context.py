@@ -12,12 +12,15 @@ and destructive maintenance actions. Periodic refresh is done exclusively via
 """
 from __future__ import annotations
 
+import importlib
+import inspect
 import os
 from dataclasses import dataclass
 from typing import Any
 
 import streamlit as st
 
+import src.video.renderer as _rend_mod
 from src.config.settings import DEFAULT_AUDIO_ALERTS_ENABLED, DEFAULT_MODEL_PATH
 from src.core.model_manager import (
     available_devices,
@@ -30,11 +33,19 @@ from src.storage.evidence import EvidenceManager
 from src.video.camera import OpenCVCameraManager
 from src.video.demo_feed import DemoShopfloorFeed
 from src.video.pipeline import TelemetryState, VideoPipeline
+
+# Hot-reload renderer module if running under a persistent server process with stale bytecode
+if (
+    not hasattr(_rend_mod.OverlayRenderer, "render_8k_clarity_canvas")
+    or "show_labels" not in inspect.signature(_rend_mod.OverlayRenderer.render_8k_clarity_canvas).parameters
+):
+    _rend_mod = importlib.reload(_rend_mod)
+
 from src.video.renderer import OverlayRenderer
 
 # Bump when VideoPipeline/renderer internals change so stale cached pipelines
 # from older code versions are rebuilt instead of monkey-patched.
-_PIPELINE_KEY_VERSION = "v5"
+_PIPELINE_KEY_VERSION = "v8"
 
 _SESSION_DEFAULTS: dict[str, Any] = {
     "theme_mode": "light",
@@ -121,9 +132,15 @@ def build_context() -> AppContext:
     state: TelemetryState = st.session_state.telemetry_state
     pipeline_key = f"{active_model_path}_{device}_{half}_{_PIPELINE_KEY_VERSION}"
     current_pipe = st.session_state.get("pipeline")
+    renderer_sig = inspect.signature(getattr(getattr(current_pipe, "renderer", None), "render_8k_clarity_canvas", lambda: None))
+    is_renderer_stale = "show_labels" not in renderer_sig.parameters and not any(
+        p.kind == inspect.Parameter.VAR_KEYWORD for p in renderer_sig.parameters.values()
+    )
+
     if (
         current_pipe is None
         or st.session_state.get("_pipeline_key") != pipeline_key
+        or is_renderer_stale
         or not hasattr(getattr(current_pipe, "renderer", None), "render_8k_clarity_canvas")
         or not hasattr(getattr(current_pipe, "renderer", None), "enhance_visual_clarity")
     ):
@@ -131,7 +148,11 @@ def build_context() -> AppContext:
         st.session_state._pipeline_key = pipeline_key
 
     pipeline: VideoPipeline = st.session_state.pipeline
-    if not hasattr(pipeline.renderer, "render_8k_clarity_canvas") or not hasattr(pipeline.renderer, "enhance_visual_clarity"):
+    if (
+        not hasattr(pipeline.renderer, "render_8k_clarity_canvas")
+        or not hasattr(pipeline.renderer, "enhance_visual_clarity")
+        or "show_labels" not in inspect.signature(pipeline.renderer.render_8k_clarity_canvas).parameters
+    ):
         pipeline.renderer = OverlayRenderer()
 
     return AppContext(
