@@ -5,7 +5,6 @@
 """
 from __future__ import annotations
 
-import html
 import os
 import sys
 from pathlib import Path
@@ -169,14 +168,11 @@ from src.ui.app_context import build_context
 ctx = build_context()
 
 # UI Components and Navigation
-from src.core.model_manager import device_label
-from src.ui.components import render_html, render_safesight_topbar, render_sidebar_header
+from src.ui.components import render_html, render_sidebar_header
 from src.ui.pages import evidence_log, image_analysis, live_feed, system_settings, video_file
 
 with st.sidebar:
     render_sidebar_header()
-
-    st.markdown('<div class="sidebar-section-label">Workspace</div>', unsafe_allow_html=True)
 
     NAV_PAGES = {
         "Live operations": "Live Feed",
@@ -201,52 +197,10 @@ with st.sidebar:
     )
     active_page = NAV_PAGES.get(active_nav, "Live Feed")
 
-    st.markdown(
-        '<div class="sidebar-section-label">System</div>',
-        unsafe_allow_html=True,
-    )
-    health_dot = "var(--green)" if ctx.load_error is None else "var(--red)"
-    health_label = "AI engine ready" if ctx.load_error is None else "Model needs attention"
-    render_html(
-        f"""
-        <div class="sidebar-system-card" style="margin-top: 10px;">
-            <div class="sidebar-system-card-top">
-                <span class="status-dot {'red' if ctx.load_error else ''}" style="--dot-color: {health_dot};"></span>
-                <strong>{health_label}</strong>
-            </div>
-            <div class="sidebar-system-card-sub">{html.escape(ctx.model_name)}</div>
-            <div class="sidebar-system-mini">
-                <span>{html.escape(device_label(ctx.device))}</span>
-                <span>·</span>
-                <span>{'GPU' if ctx.device.startswith('cuda') else 'CPU'}</span>
-            </div>
-        </div>
-        """
-    )
-
 # Stop hardware camera when navigating away from Live Feed
 if active_page != "Live Feed" and ctx.camera_manager.is_running:
     ctx.camera_manager.stop()
     st.session_state.cam_stream_active = False
-
-# Top Platform Header Bar
-render_safesight_topbar(current_page=active_page, health_ok=(ctx.load_error is None), model_name=ctx.model_name)
-render_html(
-    f"""
-    <div class="app-context-strip">
-        <div class="app-context-main">
-            <span class="status-dot {'red' if ctx.load_error else ''}"></span>
-            <strong>{html.escape(active_page)}</strong>
-            <span class="app-context-divider">/</span>
-            <span>{'AI inference ready' if ctx.load_error is None else 'Model attention required'}</span>
-        </div>
-        <div class="app-context-meta">
-            <span class="app-context-chip">🧠 {html.escape(ctx.model_name)}</span>
-            <span class="app-context-chip">⚡ {html.escape(device_label(ctx.device))}</span>
-        </div>
-    </div>
-    """
-)
 
 if ctx.load_error:
     st.error(f"⚠️ Model loading error: {ctx.load_error}")
