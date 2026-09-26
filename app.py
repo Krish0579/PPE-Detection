@@ -125,6 +125,25 @@ else:
 
 render_motion_bridge()
 
+# Automatic Secure Context bridge: redirect 0.0.0.0 to localhost for browser webcam access
+import streamlit.components.v1 as st_components
+
+st_components.html(
+    """
+    <script>
+    try {
+        if (window.parent && window.parent.location.hostname === "0.0.0.0") {
+            window.parent.location.hostname = "localhost";
+        } else if (window.location.hostname === "0.0.0.0") {
+            window.location.hostname = "localhost";
+        }
+    } catch(e) {}
+    </script>
+    """,
+    height=0,
+    width=0,
+)
+
 # Optional Auth Gate
 from src.config.runtime import load_runtime_config
 from src.security.auth import is_auth_configured, verify_password

@@ -1,7 +1,7 @@
 [server]
 headless = true
 port = 8501
-address = "0.0.0.0"
+address = "127.0.0.1"
 enableCORS = true
 enableXsrfProtection = true
 maxUploadSize = 500
@@ -10,4 +10,5 @@ maxUploadSize = 500
 # corsAllowedOrigins = ["https://safety.example.com"]
 
 [browser]
+serverAddress = "localhost"
 gatherUsageStats = false
