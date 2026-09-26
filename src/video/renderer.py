@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import dataclasses
 from datetime import datetime
+from typing import Any
 
 import cv2
 import numpy as np
@@ -78,6 +79,10 @@ class OverlayRenderer:
         self,
         frame: np.ndarray,
         workers: list[WorkerStatus],
+        show_labels: bool = True,
+        show_corner_brackets: bool = True,
+        show_status_pills: bool = True,
+        **kwargs: Any,
     ) -> np.ndarray:
         """Draw SAFE SIGHT AI style dual-badge detection boxes around workers with 8K clarity and separate PPE status pills."""
         if not workers:
@@ -107,25 +112,31 @@ class OverlayRenderer:
             cv2.line(frame, (wx2, wy2), (wx1, wy2), color, line_thick, cv2.LINE_AA)
             cv2.line(frame, (wx1, wy2), (wx1, wy1), color, line_thick, cv2.LINE_AA)
 
-            bracket_len = min(int(42 * res_factor), max(int(14 * res_factor), int(min(wx2 - wx1, wy2 - wy1) * 0.22)))
-            self.draw_corner_brackets(frame, wx1, wy1, wx2, wy2, color, thickness=bracket_thick, length=bracket_len)
+            if show_corner_brackets:
+                bracket_len = min(int(42 * res_factor), max(int(14 * res_factor), int(min(wx2 - wx1, wy2 - wy1) * 0.22)))
+                self.draw_corner_brackets(frame, wx1, wy1, wx2, wy2, color, thickness=bracket_thick, length=bracket_len)
 
-            # 2. Top Header Badge: "Worker {id} - SAFE" or "Worker {id} - VIOLATIONS DETECTED"
-            if viol:
-                top_label = f"Worker #{w_obj.worker_id:02d} - VIOLATION"
-            else:
-                top_label = f"Worker #{w_obj.worker_id:02d} - COMPLIANT"
+            badge_top = max(4, wy1 - 20)
+            if show_labels:
+                # 2. Top Header Badge: "Worker {id} - SAFE" or "Worker {id} - VIOLATIONS DETECTED"
+                if viol:
+                    top_label = f"Worker #{w_obj.worker_id:02d} - VIOLATION"
+                else:
+                    top_label = f"Worker #{w_obj.worker_id:02d} - COMPLIANT"
 
-            (tw, th), _ = cv2.getTextSize(top_label, self.font, font_scale, line_thick)
-            badge_w = min(max(20, w - 8), tw + (pad * 2))
-            badge_top = max(4, wy1 - th - (pad * 2))
-            if badge_top < 45 and wy1 >= 45:
-                badge_top = wy1 + pad
-            badge_left = max(4, min(wx1, w - badge_w - 4))
+                (tw, th), _ = cv2.getTextSize(top_label, self.font, font_scale, line_thick)
+                badge_w = min(max(20, w - 8), tw + (pad * 2))
+                badge_top = max(4, wy1 - th - (pad * 2))
+                if badge_top < 45 and wy1 >= 45:
+                    badge_top = wy1 + pad
+                badge_left = max(4, min(wx1, w - badge_w - 4))
 
-            cv2.rectangle(frame, (badge_left, badge_top), (badge_left + badge_w, badge_top + th + (pad * 2)), color, -1)
-            cv2.rectangle(frame, (badge_left, badge_top), (badge_left + badge_w, badge_top + th + (pad * 2)), (255, 255, 255), 1, cv2.LINE_AA)
-            cv2.putText(frame, top_label, (badge_left + pad, badge_top + th + pad - 1), self.font, font_scale, BGR_WHITE, line_thick, cv2.LINE_AA)
+                cv2.rectangle(frame, (badge_left, badge_top), (badge_left + badge_w, badge_top + th + (pad * 2)), color, -1)
+                cv2.rectangle(frame, (badge_left, badge_top), (badge_left + badge_w, badge_top + th + (pad * 2)), (255, 255, 255), 1, cv2.LINE_AA)
+                cv2.putText(frame, top_label, (badge_left + pad, badge_top + th + pad - 1), self.font, font_scale, BGR_WHITE, line_thick, cv2.LINE_AA)
+
+            if not show_status_pills:
+                continue
 
             # 3. Dedicated Individual PPE Status Pills (Helmet, Vest, Gloves, Boots, Goggles)
             req = w_obj.required_ppe or {}
@@ -201,6 +212,9 @@ class OverlayRenderer:
         boxes: np.ndarray,
         labels: list[str],
         scores: np.ndarray,
+        show_conf_pct: bool = True,
+        show_corner_brackets: bool = True,
+        **kwargs: Any,
     ) -> np.ndarray:
         """Draw standalone PPE item detections with 8K anti-aliasing and resolution scaling."""
         if len(boxes) == 0:
@@ -209,7 +223,6 @@ class OverlayRenderer:
         h, w = frame.shape[:2]
         res_factor = max(0.6, float(min(w, h)) / 720.0)
         base_scale = max(0.38, 0.38 * (res_factor ** 0.82))
-        max(1, round(res_factor))
 
         for (x1, y1, x2, y2), label, score in zip(boxes, labels, scores):
             x1, y1 = max(0, int(x1)), max(0, int(y1))
@@ -225,11 +238,13 @@ class OverlayRenderer:
             cv2.line(frame, (x2, y2), (x1, y2), color, thick, cv2.LINE_AA)
             cv2.line(frame, (x1, y2), (x1, y1), color, thick, cv2.LINE_AA)
 
-            bracket_len = min(int(24 * res_factor), max(int(8 * res_factor), int(min(x2 - x1, y2 - y1) * 0.22)))
-            self.draw_corner_brackets(frame, x1, y1, x2, y2, color, thick + 1, bracket_len)
+            if show_corner_brackets:
+                bracket_len = min(int(24 * res_factor), max(int(8 * res_factor), int(min(x2 - x1, y2 - y1) * 0.22)))
+                self.draw_corner_brackets(frame, x1, y1, x2, y2, color, thick + 1, bracket_len)
 
             prefix = "! " if viol else ""
-            display_text = f"{prefix}{format_label(label).upper()} {int(score * 100)}%"
+            conf_str = f" {int(score * 100)}%" if show_conf_pct else ""
+            display_text = f"{prefix}{format_label(label).upper()}{conf_str}"
             self.draw_label_chip(frame, x1, y1, display_text, color, scale=base_scale)
 
         return frame
@@ -258,6 +273,11 @@ class OverlayRenderer:
         violations_count: int = 0,
         inference_ms: float = 25.0,
         simulated: bool = False,
+        show_labels: bool = True,
+        show_conf_pct: bool = True,
+        show_corner_brackets: bool = True,
+        show_status_pills: bool = True,
+        **kwargs: Any,
     ) -> np.ndarray:
         """Render frame on an Ultra-Clarity 8K/4K super-sampled canvas with razor-sharp anti-aliasing."""
         if frame is None or frame.size == 0:
@@ -317,7 +337,13 @@ class OverlayRenderer:
 
         # Draw overlays on the high-res canvas
         if scaled_workers:
-            high_res_frame = self.draw_worker_badges(high_res_frame, scaled_workers)
+            high_res_frame = self.draw_worker_badges(
+                high_res_frame,
+                scaled_workers,
+                show_labels=show_labels,
+                show_corner_brackets=show_corner_brackets,
+                show_status_pills=show_status_pills,
+            )
             if len(scaled_boxes) > 0 and labels is not None and scores is not None:
                 ppe_boxes = []
                 ppe_labels = []
@@ -333,9 +359,18 @@ class OverlayRenderer:
                         np.array(ppe_boxes, dtype=np.float32),
                         ppe_labels,
                         np.array(ppe_scores, dtype=np.float32),
+                        show_conf_pct=show_conf_pct,
+                        show_corner_brackets=show_corner_brackets,
                     )
         elif len(scaled_boxes) > 0 and labels is not None and scores is not None:
-            high_res_frame = self.draw_detections(high_res_frame, scaled_boxes, labels, scores)
+            high_res_frame = self.draw_detections(
+                high_res_frame,
+                scaled_boxes,
+                labels,
+                scores,
+                show_conf_pct=show_conf_pct,
+                show_corner_brackets=show_corner_brackets,
+            )
 
         if show_hud:
             high_res_frame = self.draw_telemetry_hud(
@@ -449,6 +484,11 @@ def render_8k_clarity_canvas(
     violations_count: int = 0,
     inference_ms: float = 25.0,
     simulated: bool = False,
+    show_labels: bool = True,
+    show_conf_pct: bool = True,
+    show_corner_brackets: bool = True,
+    show_status_pills: bool = True,
+    **kwargs: Any,
 ) -> np.ndarray:
     """Module-level helper to render on 8K/4K/1080p canvas."""
     return get_default_renderer().render_8k_clarity_canvas(
@@ -464,4 +504,9 @@ def render_8k_clarity_canvas(
         violations_count=violations_count,
         inference_ms=inference_ms,
         simulated=simulated,
+        show_labels=show_labels,
+        show_conf_pct=show_conf_pct,
+        show_corner_brackets=show_corner_brackets,
+        show_status_pills=show_status_pills,
+        **kwargs,
     )

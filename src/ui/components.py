@@ -251,6 +251,8 @@ def render_compliance_panel(
     total_tracked: int = 0,
     workers: list[WorkerStatus] | None = None,
     required_ppe: dict[str, bool] | None = None,
+    simulated: bool = False,
+    **kwargs: Any,
 ) -> None:
     """Render PPE compliance breakdown panel with circular SVG donut chart and item progress bars."""
     req = required_ppe or {"helmet": True, "vest": True, "boots": True, "gloves": True, "goggles": True}
@@ -1465,15 +1467,38 @@ def render_audio_alert_script(active: bool = False) -> None:
     _get_chime_wav_b64()
 
 
-def render_perf_chip(mode_key: str = "balanced") -> None:
-    """Render a small performance-mode indicator chip."""
-    labels = {"fast": "⚡ Fast", "balanced": "⚖️ Balanced", "quality": "🔬 Quality"}
-    label = labels.get(mode_key, mode_key.title())
-    render_html(
-        f'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;'
-        f'border:1px solid var(--line);border-radius:999px;font-size:10px;'
-        f'color:var(--secondary);background:var(--panel);">{label}</span>'
-    )
+def render_perf_chip(
+    fps: float | str = 0.0,
+    inference_ms: float = 0.0,
+    label: str = "INFERENCE",
+    mode_key: str | None = None,
+    **kwargs: Any,
+) -> None:
+    """Render a performance badge displaying FPS/latency telemetry or performance mode."""
+    if isinstance(fps, str) and not mode_key:
+        mode_key = fps
+
+    if mode_key is not None:
+        labels = {"fast": "⚡ Fast", "balanced": "⚖️ Balanced", "quality": "🔬 Quality"}
+        label_text = labels.get(mode_key, mode_key.title())
+        render_html(
+            f'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;'
+            f'border:1px solid var(--line);border-radius:999px;font-size:10px;'
+            f'color:var(--secondary);background:var(--panel);">{label_text}</span>'
+        )
+    else:
+        try:
+            fps_val = float(fps)
+        except (ValueError, TypeError):
+            fps_val = 0.0
+        render_html(
+            f'<div style="display:inline-flex;align-items:center;gap:8px;padding:3px 9px;'
+            f'background:var(--panel);border:1px solid var(--line);border-radius:6px;font-size:10.5px;'
+            f'font-family:monospace;margin:4px 0;">'
+            f'<span style="color:var(--muted);font-weight:600;">{label}</span>'
+            f'<span style="color:var(--green);">⚡ {fps_val:.1f} FPS │ {inference_ms:.0f} ms</span>'
+            f'</div>'
+        )
 
 
 def render_skeleton_block(title: str = "Loading…", subtitle: str = "") -> None:
