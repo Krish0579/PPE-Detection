@@ -1,4 +1,5 @@
 """QThread worker for real-time video capture and neural inference."""
+
 from __future__ import annotations
 
 import logging
@@ -59,7 +60,9 @@ class VideoWorker(QThread):
                 # Force simulation
                 self.camera_manager.start(device_index=0, pipeline_ref=self.pipeline, allow_simulation_fallback=True)
             else:
-                self.camera_manager.start(device_index=self._device_index, pipeline_ref=self.pipeline, allow_simulation_fallback=True)
+                self.camera_manager.start(
+                    device_index=self._device_index, pipeline_ref=self.pipeline, allow_simulation_fallback=True
+                )
 
             is_sim = self.camera_manager.is_simulated
             status_text = "Simulated feed active" if is_sim else f"Camera {self._device_index} active"

@@ -3,6 +3,7 @@
 Uses vertical anatomical zoning (head region, torso region, foot region) and
 zone containment to determine safety compliance on a per-worker basis.
 """
+
 from __future__ import annotations
 
 import math
@@ -26,12 +27,13 @@ from src.core.class_semantics import (
 @dataclass
 class WorkerStatus:
     """Per-worker safety compliance and zone location profile."""
+
     worker_id: int
     box: tuple[int, int, int, int]
-    helmet_status: str = "UNKNOWN"   # "COMPLIANT", "VIOLATION", "UNKNOWN"
-    vest_status: str = "UNKNOWN"     # "COMPLIANT", "VIOLATION", "UNKNOWN"
-    boots_status: str = "UNKNOWN"    # "COMPLIANT", "VIOLATION", "UNKNOWN"
-    gloves_status: str = "UNKNOWN"   # "COMPLIANT", "VIOLATION", "UNKNOWN"
+    helmet_status: str = "UNKNOWN"  # "COMPLIANT", "VIOLATION", "UNKNOWN"
+    vest_status: str = "UNKNOWN"  # "COMPLIANT", "VIOLATION", "UNKNOWN"
+    boots_status: str = "UNKNOWN"  # "COMPLIANT", "VIOLATION", "UNKNOWN"
+    gloves_status: str = "UNKNOWN"  # "COMPLIANT", "VIOLATION", "UNKNOWN"
     goggles_status: str = "UNKNOWN"  # "COMPLIANT", "VIOLATION", "UNKNOWN"
     zone: str = "Assembly Line A"
     zone_type: str = "Standard"
@@ -193,15 +195,14 @@ class WorkerTracker:
         # Persistent identity gallery storing appearance and historical stats across camera exits
         self.gallery: dict[int, dict] = {}
 
-    def extract_feature(
-        self, frame_image: np.ndarray | None, box: tuple[int, int, int, int]
-    ) -> np.ndarray | None:
+    def extract_feature(self, frame_image: np.ndarray | None, box: tuple[int, int, int, int]) -> np.ndarray | None:
         """Extract a multi-zone spatial HSV color appearance signature (upper torso + lower body).
         Extremely fast (<0.4ms) and illumination-invariant, re-identifies workers across camera exits."""
         if frame_image is None or not isinstance(frame_image, np.ndarray) or frame_image.size == 0:
             return None
         try:
             import cv2
+
             ih, iw = frame_image.shape[:2]
             x1, y1, x2, y2 = box
             x1, y1 = max(0, min(iw - 1, int(x1))), max(0, min(ih - 1, int(y1)))
@@ -248,6 +249,7 @@ class WorkerTracker:
             return 0.0
         try:
             import cv2
+
             # Handle multi-zone stacked histograms (32x8)
             if hist_a.shape == (32, 8) and hist_b.shape == (32, 8):
                 u_a, u_b = hist_a[:16], hist_b[:16]
@@ -391,7 +393,9 @@ class WorkerTracker:
                             best_did = did
 
                     # If confidence is solid, or if there's only 1 dormant person available, re-use persistent identity
-                    if best_did is not None and (best_score >= 0.20 or len(self.gallery) == 1 or len(detected_boxes) <= len(self.gallery)):
+                    if best_did is not None and (
+                        best_score >= 0.20 or len(self.gallery) == 1 or len(detected_boxes) <= len(self.gallery)
+                    ):
                         matched_dormant_id = best_did
                         dormant_ids.remove(best_did)
 
@@ -538,13 +542,18 @@ def associate_ppe_to_workers(
         # Fallback: detect face anchor for close-up webcam user
         try:
             import cv2
+
             gray = cv2.cvtColor(frame_image, cv2.COLOR_BGR2GRAY) if len(frame_image.shape) == 3 else frame_image
-            cascade_path = getattr(cv2, "data", None).haarcascades + "haarcascade_frontalface_default.xml" if hasattr(cv2, "data") else ""
+            cascade_path = (
+                getattr(cv2, "data", None).haarcascades + "haarcascade_frontalface_default.xml"
+                if hasattr(cv2, "data")
+                else ""
+            )
             if cascade_path:
                 face_cascade = cv2.CascadeClassifier(cascade_path)
                 if not face_cascade.empty():
                     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=3, minSize=(50, 50))
-                    for (fx, fy, fw, fh) in faces:
+                    for fx, fy, fw, fh in faces:
                         bx1 = max(0, int(fx - fw * 0.4))
                         by1 = max(0, int(fy - fh * 0.3))
                         bx2 = min(frame_w, int(fx + fw * 1.4))
@@ -563,7 +572,7 @@ def associate_ppe_to_workers(
     else:
         tracked_info = [(idx + 1, 0.0) for idx in range(len(person_boxes))]
 
-    for (box, (w_id, dwell)) in zip(person_boxes, tracked_info):
+    for box, (w_id, dwell) in zip(person_boxes, tracked_info):
         effective_box = tracker.tracks[w_id].get("box", box) if (tracker and w_id in tracker.tracks) else box
         cx = (effective_box[0] + effective_box[2]) / (2.0 * max(1, frame_w))
         cy = effective_box[3] / float(max(1, frame_h))

@@ -8,6 +8,7 @@ Usage:
 Updates ``src/__version__.py``, prepends a CHANGELOG entry, then runs the offline
 readiness gate. Tagging (``git tag vX.Y.Z``) is left to the operator on purpose.
 """
+
 from __future__ import annotations
 
 import argparse

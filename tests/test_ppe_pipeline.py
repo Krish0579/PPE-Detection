@@ -1,4 +1,5 @@
 """Comprehensive verification suite for PPE Vision AI platform using standard unittest."""
+
 from __future__ import annotations
 
 import sys
@@ -34,7 +35,6 @@ from src.video.renderer import OverlayRenderer
 
 
 class TestPPEPlatform(unittest.TestCase):
-
     def test_class_semantics(self):
         self.assertEqual(normalize("NO_HELMET "), "no-helmet")
         self.assertTrue(is_violation("no-helmet"))
@@ -61,6 +61,7 @@ class TestPPEPlatform(unittest.TestCase):
         self.assertEqual(bgr_for("no-helmet"), BGR_BAD)
         self.assertEqual(bgr_for("helmet"), BGR_OK)
         from src.config.settings import THEME_LIGHT
+
         self.assertEqual(hex_for("no-helmet", THEME_DARK), THEME_DARK["bad"])
         self.assertEqual(hex_for("no-helmet"), THEME_LIGHT["bad"])
         self.assertEqual(format_label("no-helmet"), "No Helmet")
@@ -81,9 +82,36 @@ class TestPPEPlatform(unittest.TestCase):
 
     def test_ppe_worker_association(self):
         mock_detections = [
-            {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "helmet", "x1": 150, "y1": 110, "x2": 250, "y2": 200, "confidence": 0.91, "violation": False, "display_label": "Helmet"},
-            {"label": "no-vest", "x1": 120, "y1": 250, "x2": 280, "y2": 450, "confidence": 0.88, "violation": True, "display_label": "No Vest"},
+            {
+                "label": "person",
+                "x1": 100,
+                "y1": 100,
+                "x2": 300,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "helmet",
+                "x1": 150,
+                "y1": 110,
+                "x2": 250,
+                "y2": 200,
+                "confidence": 0.91,
+                "violation": False,
+                "display_label": "Helmet",
+            },
+            {
+                "label": "no-vest",
+                "x1": 120,
+                "y1": 250,
+                "x2": 280,
+                "y2": 450,
+                "confidence": 0.88,
+                "violation": True,
+                "display_label": "No Vest",
+            },
         ]
         workers = associate_ppe_to_workers(mock_detections)
         self.assertEqual(len(workers), 1)
@@ -213,13 +241,67 @@ class TestPPEPlatform(unittest.TestCase):
         """Test multi-worker scenario: Worker A compliant, Worker B violation."""
         detections = [
             # Worker A (compliant: helmet + vest)
-            {"label": "person", "x1": 50, "y1": 100, "x2": 250, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "helmet", "x1": 100, "y1": 110, "x2": 200, "y2": 190, "confidence": 0.92, "violation": False, "display_label": "Helmet"},
-            {"label": "vest", "x1": 80, "y1": 220, "x2": 220, "y2": 450, "confidence": 0.89, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": 50,
+                "y1": 100,
+                "x2": 250,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "helmet",
+                "x1": 100,
+                "y1": 110,
+                "x2": 200,
+                "y2": 190,
+                "confidence": 0.92,
+                "violation": False,
+                "display_label": "Helmet",
+            },
+            {
+                "label": "vest",
+                "x1": 80,
+                "y1": 220,
+                "x2": 220,
+                "y2": 450,
+                "confidence": 0.89,
+                "violation": False,
+                "display_label": "Vest",
+            },
             # Worker B (violation: no-helmet + vest)
-            {"label": "person", "x1": 400, "y1": 100, "x2": 600, "y2": 600, "confidence": 0.94, "violation": False, "display_label": "Person"},
-            {"label": "no-helmet", "x1": 450, "y1": 110, "x2": 550, "y2": 190, "confidence": 0.90, "violation": True, "display_label": "No Helmet"},
-            {"label": "vest", "x1": 430, "y1": 220, "x2": 570, "y2": 450, "confidence": 0.88, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": 400,
+                "y1": 100,
+                "x2": 600,
+                "y2": 600,
+                "confidence": 0.94,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "no-helmet",
+                "x1": 450,
+                "y1": 110,
+                "x2": 550,
+                "y2": 190,
+                "confidence": 0.90,
+                "violation": True,
+                "display_label": "No Helmet",
+            },
+            {
+                "label": "vest",
+                "x1": 430,
+                "y1": 220,
+                "x2": 570,
+                "y2": 450,
+                "confidence": 0.88,
+                "violation": False,
+                "display_label": "Vest",
+            },
         ]
         workers = associate_ppe_to_workers(detections)
         self.assertEqual(len(workers), 2)
@@ -237,9 +319,27 @@ class TestPPEPlatform(unittest.TestCase):
     def test_boots_spatial_classification(self):
         """Boots detected at chest height must be classified as boots, not vest."""
         detections = [
-            {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
+            {
+                "label": "person",
+                "x1": 100,
+                "y1": 100,
+                "x2": 300,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
             # Boot at y=250-350 (chest zone rel_y=0.3-0.5)
-            {"label": "boots", "x1": 150, "y1": 250, "x2": 250, "y2": 350, "confidence": 0.91, "violation": False, "display_label": "Boots"},
+            {
+                "label": "boots",
+                "x1": 150,
+                "y1": 250,
+                "x2": 250,
+                "y2": 350,
+                "confidence": 0.91,
+                "violation": False,
+                "display_label": "Boots",
+            },
         ]
         workers = associate_ppe_to_workers(detections)
         self.assertEqual(len(workers), 1)
@@ -293,9 +393,36 @@ class TestPPEPlatform(unittest.TestCase):
 
         # Frame 1: Person 1 at (100, 100, 300, 600) with no-helmet and no-vest
         dets_frame1 = [
-            {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "no-helmet", "x1": 140, "y1": 110, "x2": 260, "y2": 190, "confidence": 0.90, "violation": True, "display_label": "no helmet"},
-            {"label": "no-vest", "x1": 130, "y1": 220, "x2": 270, "y2": 450, "confidence": 0.88, "violation": True, "display_label": "no vest"},
+            {
+                "label": "person",
+                "x1": 100,
+                "y1": 100,
+                "x2": 300,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "no-helmet",
+                "x1": 140,
+                "y1": 110,
+                "x2": 260,
+                "y2": 190,
+                "confidence": 0.90,
+                "violation": True,
+                "display_label": "no helmet",
+            },
+            {
+                "label": "no-vest",
+                "x1": 130,
+                "y1": 220,
+                "x2": 270,
+                "y2": 450,
+                "confidence": 0.88,
+                "violation": True,
+                "display_label": "no vest",
+            },
         ]
         workers1 = associate_ppe_to_workers(dets_frame1, tracker=tracker, timestamp=now)
         self.assertEqual(len(workers1), 1)
@@ -313,13 +440,67 @@ class TestPPEPlatform(unittest.TestCase):
         now += 2.0
         dets_frame2 = [
             # Person 1 (shifted by 5px)
-            {"label": "person", "x1": 105, "y1": 100, "x2": 305, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "no-helmet", "x1": 145, "y1": 110, "x2": 265, "y2": 190, "confidence": 0.90, "violation": True, "display_label": "no helmet"},
-            {"label": "no-vest", "x1": 135, "y1": 220, "x2": 275, "y2": 450, "confidence": 0.88, "violation": True, "display_label": "no vest"},
+            {
+                "label": "person",
+                "x1": 105,
+                "y1": 100,
+                "x2": 305,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "no-helmet",
+                "x1": 145,
+                "y1": 110,
+                "x2": 265,
+                "y2": 190,
+                "confidence": 0.90,
+                "violation": True,
+                "display_label": "no helmet",
+            },
+            {
+                "label": "no-vest",
+                "x1": 135,
+                "y1": 220,
+                "x2": 275,
+                "y2": 450,
+                "confidence": 0.88,
+                "violation": True,
+                "display_label": "no vest",
+            },
             # Person 2
-            {"label": "person", "x1": 500, "y1": 100, "x2": 700, "y2": 600, "confidence": 0.94, "violation": False, "display_label": "Person"},
-            {"label": "no-goggles", "x1": 540, "y1": 130, "x2": 660, "y2": 170, "confidence": 0.85, "violation": True, "display_label": "no goggles"},
-            {"label": "no-gloves", "x1": 520, "y1": 350, "x2": 580, "y2": 430, "confidence": 0.82, "violation": True, "display_label": "no gloves"},
+            {
+                "label": "person",
+                "x1": 500,
+                "y1": 100,
+                "x2": 700,
+                "y2": 600,
+                "confidence": 0.94,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "no-goggles",
+                "x1": 540,
+                "y1": 130,
+                "x2": 660,
+                "y2": 170,
+                "confidence": 0.85,
+                "violation": True,
+                "display_label": "no goggles",
+            },
+            {
+                "label": "no-gloves",
+                "x1": 520,
+                "y1": 350,
+                "x2": 580,
+                "y2": 430,
+                "confidence": 0.82,
+                "violation": True,
+                "display_label": "no gloves",
+            },
         ]
         workers2 = associate_ppe_to_workers(dets_frame2, tracker=tracker, timestamp=now)
         self.assertEqual(len(workers2), 2)

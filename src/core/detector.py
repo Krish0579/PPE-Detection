@@ -2,6 +2,7 @@
 
 Provides high-throughput prediction with per-class confidence thresholding.
 """
+
 from __future__ import annotations
 
 import logging
@@ -107,19 +108,23 @@ def run_inference(
         "imgsz": int(image_size),
         "max_det": int(max_detections),
         "device": device,
-        "half": half,
         "verbose": False,
     }
+    if half and str(device).startswith("cuda"):
+        predict_kwargs["half"] = True
     if augment:
         predict_kwargs["augment"] = True
 
     try:
         results = model.predict(image, **predict_kwargs)
-    except TypeError:
+    except (TypeError, RuntimeError, ValueError):
         predict_kwargs.pop("augment", None)
         predict_kwargs.pop("half", None)
         predict_kwargs.pop("device", None)
-        results = model.predict(image, **predict_kwargs)
+        try:
+            results = model.predict(image, **predict_kwargs)
+        except (TypeError, RuntimeError, ValueError):
+            results = model.predict(image, conf=floor_conf, iou=float(iou_threshold), verbose=False)
 
     if not results or len(results) == 0:
         return np.empty((0, 4), dtype=np.float32), np.empty((0,), dtype=np.float32), [], []
@@ -182,9 +187,10 @@ def run_inference(
                 "iou": float(max(0.01, min(0.99, iou_threshold))),
                 "imgsz": int(crop_imgsz),
                 "device": device,
-                "half": half,
                 "verbose": False,
             }
+            if half and str(device).startswith("cuda"):
+                c_kwargs["half"] = True
             if augment:
                 c_kwargs["augment"] = True
             try:
@@ -232,15 +238,20 @@ def run_inference(
     detections = []
     for box, lab, score in zip(filtered_boxes, filtered_labels, filtered_scores):
         x1, y1, x2, y2 = [round(float(v)) for v in box]
-        detections.append({
-            "label": normalize(lab),
-            "display_label": format_label(lab),
-            "confidence": round(float(score), 4),
-            "conf": round(float(score), 4),
-            "x1": x1, "y1": y1, "x2": x2, "y2": y2,
-            "violation": is_violation(lab),
-            "compliance": is_compliance(lab),
-            "category": get_category(lab),
-        })
+        detections.append(
+            {
+                "label": normalize(lab),
+                "display_label": format_label(lab),
+                "confidence": round(float(score), 4),
+                "conf": round(float(score), 4),
+                "x1": x1,
+                "y1": y1,
+                "x2": x2,
+                "y2": y2,
+                "violation": is_violation(lab),
+                "compliance": is_compliance(lab),
+                "category": get_category(lab),
+            }
+        )
 
     return filtered_boxes, filtered_scores, filtered_labels, detections

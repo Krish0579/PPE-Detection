@@ -3,6 +3,7 @@
 Maps model output labels to semantic concepts: compliance, violation, person,
 and assigns consistent safety-standard colors.
 """
+
 from __future__ import annotations
 
 from src.config.settings import BGR_AMBER, BGR_BLUE, BGR_GREEN, BGR_RED, THEME_LIGHT
@@ -21,13 +22,22 @@ PPE_CONFIG_ALIASES = {
     "no_goggles": ["no_goggle", "no-goggle", "no_goggles", "no-goggles", "without-goggles", "without_goggles"],
 }
 
-VIOLATION_TOKENS = (
-    "no-", "no_", "no ", "without", "missing", "off-", "violation", "unprotected"
-)
+VIOLATION_TOKENS = ("no-", "no_", "no ", "without", "missing", "off-", "violation", "unprotected")
 
 COMPLIANCE_TOKENS = (
-    "helmet", "hardhat", "hard-hat", "vest", "mask", "gloves", "goggles",
-    "boots", "shoes", "glasses", "shield", "harness", "ear-protection"
+    "helmet",
+    "hardhat",
+    "hard-hat",
+    "vest",
+    "mask",
+    "gloves",
+    "goggles",
+    "boots",
+    "shoes",
+    "glasses",
+    "shield",
+    "harness",
+    "ear-protection",
 )
 
 PERSON_TOKENS = ("person", "worker", "people", "human")

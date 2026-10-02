@@ -3,6 +3,7 @@
 Contains all tuneable constants, hardware performance profiles, color tokens,
 zone definitions, and filesystem paths.
 """
+
 from __future__ import annotations
 
 import os
@@ -64,6 +65,7 @@ CAMERA_WIDTH = 3840
 CAMERA_HEIGHT = 2160
 CAMERA_FPS = 30
 
+
 # Performance Profiles
 @dataclass(frozen=True)
 class PerformanceProfile:
@@ -73,6 +75,7 @@ class PerformanceProfile:
     description: str
     augment: bool = False
     crop_refine: bool = False
+
 
 PERFORMANCE_MODES: dict[str, PerformanceProfile] = {
     "balanced": PerformanceProfile(
@@ -155,6 +158,7 @@ def _env_bool(name: str, default: bool) -> bool:
 ALLOW_EXTERNAL_MODEL_PATH = _env_bool("PPE_ALLOW_EXTERNAL_MODEL_PATH", False)
 MODEL_UPLOAD_ENABLED = _env_bool("PPE_ENABLE_MODEL_UPLOAD", False)
 
+
 # Shopfloor Zone Configuration
 @dataclass
 class ZoneConfig:
@@ -164,34 +168,35 @@ class ZoneConfig:
     capacity: int = 5
     polygon: list[tuple[float, float]] = field(default_factory=list)  # normalized (0-1)
 
+
 DEFAULT_ZONES: list[ZoneConfig] = [
     ZoneConfig(
         id="Z-01",
         name="Assembly Line A",
         type="Standard",
         capacity=6,
-        polygon=[(0.0, 0.0), (0.5, 0.0), (0.5, 0.5), (0.0, 0.5)]
+        polygon=[(0.0, 0.0), (0.5, 0.0), (0.5, 0.5), (0.0, 0.5)],
     ),
     ZoneConfig(
         id="Z-02",
         name="Heavy Machinery Bay",
         type="Restricted",
         capacity=2,
-        polygon=[(0.5, 0.0), (1.0, 0.0), (1.0, 0.5), (0.5, 0.5)]
+        polygon=[(0.5, 0.0), (1.0, 0.0), (1.0, 0.5), (0.5, 0.5)],
     ),
     ZoneConfig(
         id="Z-03",
         name="Material Staging",
         type="Standard",
         capacity=8,
-        polygon=[(0.0, 0.5), (0.5, 0.5), (0.5, 1.0), (0.0, 1.0)]
+        polygon=[(0.0, 0.5), (0.5, 0.5), (0.5, 1.0), (0.0, 1.0)],
     ),
     ZoneConfig(
         id="Z-04",
         name="Quality Inspection",
         type="Standard",
         capacity=4,
-        polygon=[(0.5, 0.5), (1.0, 0.5), (1.0, 1.0), (0.5, 1.0)]
+        polygon=[(0.5, 0.5), (1.0, 0.5), (1.0, 1.0), (0.5, 1.0)],
     ),
 ]
 
@@ -250,12 +255,12 @@ THEME_LIGHT = {
 }
 
 # Drawing Colors (BGR format for OpenCV overlays)
-BGR_GREEN: tuple[int, int, int] = (161, 198, 75)   # #4bc6a1
-BGR_RED: tuple[int, int, int] = (146, 146, 239)    # #ef9292
-BGR_AMBER: tuple[int, int, int] = (99, 185, 233)   # #e9b963
-BGR_BLUE: tuple[int, int, int] = (224, 180, 147)   # #93b4e0
+BGR_GREEN: tuple[int, int, int] = (161, 198, 75)  # #4bc6a1
+BGR_RED: tuple[int, int, int] = (146, 146, 239)  # #ef9292
+BGR_AMBER: tuple[int, int, int] = (99, 185, 233)  # #e9b963
+BGR_BLUE: tuple[int, int, int] = (224, 180, 147)  # #93b4e0
 BGR_WHITE: tuple[int, int, int] = (255, 255, 255)
-BGR_DARK: tuple[int, int, int] = (30, 27, 18)      # #121b1e
+BGR_DARK: tuple[int, int, int] = (30, 27, 18)  # #121b1e
 
 # Backwards compatibility aliases
 BGR_OK = BGR_GREEN

@@ -2,6 +2,7 @@
 
 Ensures Ultralytics config is confined to local workspace cache to avoid macOS permissions issues.
 """
+
 from __future__ import annotations
 
 import os

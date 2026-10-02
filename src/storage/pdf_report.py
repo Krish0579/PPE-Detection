@@ -5,6 +5,7 @@ detailing what PPE was missing, when violations occurred, how long they persiste
 aggregated counts of non-compliant personnel, visual compliance charts,
 and optional photographic violation evidence.
 """
+
 from __future__ import annotations
 
 import io
@@ -97,10 +98,7 @@ def generate_audit_pdf(
     events = events or []
 
     total_persons = len(person_incidents)
-    non_compliant_persons = [
-        p for p in person_incidents
-        if p.get("missing_ppe") and len(p["missing_ppe"]) > 0
-    ]
+    non_compliant_persons = [p for p in person_incidents if p.get("missing_ppe") and len(p["missing_ppe"]) > 0]
     violating_count = len(non_compliant_persons)
     compliant_count = total_persons - violating_count
     compliance_rate = round((compliant_count / total_persons) * 100.0, 1) if total_persons > 0 else 100.0
@@ -112,9 +110,7 @@ def generate_audit_pdf(
             missing_items_list.append(clean_item)
 
     missing_counter = Counter(missing_items_list)
-    top_missing_gear = (
-        missing_counter.most_common(1)[0][0] if missing_counter else "None (100% Compliant)"
-    )
+    top_missing_gear = missing_counter.most_common(1)[0][0] if missing_counter else "None (100% Compliant)"
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -210,15 +206,25 @@ def generate_audit_pdf(
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     header_table_data = [
         [
-            Paragraph("<b>SAFE SIGHT AI VISION</b><br/><font size='11' color='#0284c7'>Certified Safety Audit Report</font>", header_title_style),
-            Paragraph(f"<b>Generated:</b> {now_str}<br/><b>Audit Ref:</b> SS-{int(datetime.now().timestamp())}", header_sub_style),
+            Paragraph(
+                "<b>SAFE SIGHT AI VISION</b><br/><font size='11' color='#0284c7'>Certified Safety Audit Report</font>",
+                header_title_style,
+            ),
+            Paragraph(
+                f"<b>Generated:</b> {now_str}<br/><b>Audit Ref:</b> SS-{int(datetime.now().timestamp())}",
+                header_sub_style,
+            ),
         ]
     ]
     t_header = Table(header_table_data, colWidths=[360, 180])
-    t_header.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-    ]))
+    t_header.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+            ]
+        )
+    )
     story.append(t_header)
     story.append(Spacer(1, 3))
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#0284c7"), spaceAfter=8))
@@ -239,18 +245,22 @@ def generate_audit_pdf(
             Paragraph("COMPLIANT WORKERS", kpi_label_style),
             Paragraph("SAFETY COMPLIANCE RATE", kpi_label_style),
             Paragraph("PRIMARY MISSING GEAR", kpi_label_style),
-        ]
+        ],
     ]
     t_kpi = Table(kpi_data, colWidths=[108, 108, 108, 108, 108])
-    t_kpi.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
-        ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-        ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t_kpi.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+                ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+                ("TOPPADDING", (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+        )
+    )
     story.append(t_kpi)
     story.append(Spacer(1, 8))
 
@@ -273,14 +283,18 @@ def generate_audit_pdf(
         ],
     ]
     t_meta = Table(meta_data, colWidths=[100, 100, 100, 90, 150])
-    t_meta.setStyle(TableStyle([
-        ("SPAN", (4, 0), (4, 1)),
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#ffffff")),
-        ("LINEBELOW", (0, 0), (3, -1), 0.5, colors.HexColor("#e2e8f0")),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ]))
+    t_meta.setStyle(
+        TableStyle(
+            [
+                ("SPAN", (4, 0), (4, 1)),
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#ffffff")),
+                ("LINEBELOW", (0, 0), (3, -1), 0.5, colors.HexColor("#e2e8f0")),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ]
+        )
+    )
     story.append(t_meta)
     story.append(Spacer(1, 10))
 
@@ -300,34 +314,49 @@ def generate_audit_pdf(
             std_clause = f"{reg_info['standard']} ({reg_info['title']})"
             sev_badge = f"<font color='{reg_info['color']}'><b>{reg_info['severity']}</b></font>"
 
-            missing_rows.append([
-                Paragraph(f"Missing {gear_name.title()}", cell_badge_red),
-                Paragraph(f"{count} worker(s)", cell_text_style),
-                Paragraph(std_clause, cell_text_style),
-                Paragraph(sev_badge, cell_bold_style),
-            ])
+            missing_rows.append(
+                [
+                    Paragraph(f"Missing {gear_name.title()}", cell_badge_red),
+                    Paragraph(f"{count} worker(s)", cell_text_style),
+                    Paragraph(std_clause, cell_text_style),
+                    Paragraph(sev_badge, cell_bold_style),
+                ]
+            )
         t_missing = Table(missing_rows, colWidths=[120, 90, 220, 110])
-        t_missing.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
-            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-        ]))
+        t_missing.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
         story.append(t_missing)
     else:
         no_viol_box = [
-            [Paragraph("<font color='#15803d'><b>[COMPLIANT] No Missing PPE Detected</b> - All inspected personnel satisfied OSHA 29 CFR 1910 safety requirements.</font>", cell_text_style)]
+            [
+                Paragraph(
+                    "<font color='#15803d'><b>[COMPLIANT] No Missing PPE Detected</b> - All inspected personnel satisfied OSHA 29 CFR 1910 safety requirements.</font>",
+                    cell_text_style,
+                )
+            ]
         ]
         t_no_viol = Table(no_viol_box, colWidths=[540])
-        t_no_viol.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f0fdf4")),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#86efac")),
-            ("TOPPADDING", (0, 0), (-1, -1), 6),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ]))
+        t_no_viol.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f0fdf4")),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#86efac")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
         story.append(t_no_viol)
 
     story.append(Spacer(1, 10))
@@ -393,46 +422,58 @@ def generate_audit_pdf(
                         snap_elem = Image(str(snap_p), width=54, height=40)
                     except Exception:
                         pass
-                person_rows.append([
-                    snap_elem,
-                    Paragraph(f"<b>{p_name}</b>", cell_bold_style),
-                    missing_cell,
-                    comp_cell,
-                    when_cell,
-                    loc_cell,
-                ])
+                person_rows.append(
+                    [
+                        snap_elem,
+                        Paragraph(f"<b>{p_name}</b>", cell_bold_style),
+                        missing_cell,
+                        comp_cell,
+                        when_cell,
+                        loc_cell,
+                    ]
+                )
             else:
-                person_rows.append([
-                    Paragraph(f"<b>{p_name}</b>", cell_bold_style),
-                    missing_cell,
-                    comp_cell,
-                    when_cell,
-                    dur_cell,
-                    loc_cell,
-                ])
+                person_rows.append(
+                    [
+                        Paragraph(f"<b>{p_name}</b>", cell_bold_style),
+                        missing_cell,
+                        comp_cell,
+                        when_cell,
+                        dur_cell,
+                        loc_cell,
+                    ]
+                )
 
         t_person = Table(person_rows, colWidths=widths)
-        t_person.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ("TOPPADDING", (0, 0), (-1, -1), 4),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ]))
+        t_person.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
         story.append(t_person)
     else:
         no_persons_table = Table(
             [[Paragraph("No personnel observed or recorded during this monitoring period.", cell_text_style)]],
             colWidths=[540],
         )
-        no_persons_table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-            ("TOPPADDING", (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-        ]))
+        no_persons_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ]
+            )
+        )
         story.append(no_persons_table)
 
     story.append(Spacer(1, 10))
@@ -457,52 +498,70 @@ def generate_audit_pdf(
             v_type = ev.get("violation_type", "Non-compliance")
             zone_str = ev.get("zone", "Production Area")
             status_str = ev.get("status", "UNRESOLVED")
-            status_style = cell_badge_red if status_str.upper() in ("ACTIVE", "UNRESOLVED", "CRITICAL") else cell_badge_green
+            status_style = (
+                cell_badge_red if status_str.upper() in ("ACTIVE", "UNRESOLVED", "CRITICAL") else cell_badge_green
+            )
 
-            ev_rows.append([
-                Paragraph(ts_str, cell_text_style),
-                Paragraph(e_type, cell_text_style),
-                Paragraph(person_lbl, cell_text_style),
-                Paragraph(f"<b>{v_type}</b>", cell_badge_red if "No" in v_type else cell_text_style),
-                Paragraph(zone_str, cell_text_style),
-                Paragraph(status_str, status_style),
-            ])
+            ev_rows.append(
+                [
+                    Paragraph(ts_str, cell_text_style),
+                    Paragraph(e_type, cell_text_style),
+                    Paragraph(person_lbl, cell_text_style),
+                    Paragraph(f"<b>{v_type}</b>", cell_badge_red if "No" in v_type else cell_text_style),
+                    Paragraph(zone_str, cell_text_style),
+                    Paragraph(status_str, status_style),
+                ]
+            )
 
         t_events = Table(ev_rows, colWidths=[90, 70, 60, 160, 85, 75])
-        t_events.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
-            ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-            ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
-            ("TOPPADDING", (0, 0), (-1, -1), 3),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ]))
+        t_events.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f172a")),
+                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+                    ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
         story.append(t_events)
         story.append(Spacer(1, 10))
 
     # 7. Official Certification & Sign-off Block
     sign_block = [
         [
-            Paragraph("<b>AUDIT VERIFICATION STATEMENT:</b><br/>"
-                      "This document certifies that the automated computer vision monitoring performed "
-                      "by the SafeSight AI Engine complies with OSHA 29 CFR 1910 and ISO 45001 occupational "
-                      "safety management requirements. All recorded infractions are digitally logged.", cell_text_style),
-            Paragraph("<b>LEAD SAFETY OFFICER / AUDITOR:</b><br/><br/>"
-                      "Signature: ___________________________<br/>"
-                      f"Date: {datetime.now().strftime('%Y-%m-%d')}<br/>"
-                      "Status: <b>AUDIT VERIFIED & CERTIFIED</b>", cell_text_style),
+            Paragraph(
+                "<b>AUDIT VERIFICATION STATEMENT:</b><br/>"
+                "This document certifies that the automated computer vision monitoring performed "
+                "by the SafeSight AI Engine complies with OSHA 29 CFR 1910 and ISO 45001 occupational "
+                "safety management requirements. All recorded infractions are digitally logged.",
+                cell_text_style,
+            ),
+            Paragraph(
+                "<b>LEAD SAFETY OFFICER / AUDITOR:</b><br/><br/>"
+                "Signature: ___________________________<br/>"
+                f"Date: {datetime.now().strftime('%Y-%m-%d')}<br/>"
+                "Status: <b>AUDIT VERIFIED & CERTIFIED</b>",
+                cell_text_style,
+            ),
         ]
     ]
     t_sign = Table(sign_block, colWidths=[310, 230])
-    t_sign.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f1f5f9")),
-        ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#94a3b8")),
-        ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-        ("TOPPADDING", (0, 0), (-1, -1), 6),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-    ]))
+    t_sign.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f1f5f9")),
+                ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#94a3b8")),
+                ("INNERGRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]
+        )
+    )
     story.append(KeepTogether(t_sign))
 
     # Build Document with NumberedCanvas for Page X of Y

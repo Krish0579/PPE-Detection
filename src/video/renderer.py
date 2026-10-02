@@ -4,6 +4,7 @@ Renders shopfloor camera overlays matching the SAFE SIGHT AI design system:
 precise corner brackets, dual header/footer status badges, top live telemetry bar,
 and bottom inference metrics.
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -91,8 +92,8 @@ class OverlayRenderer:
         h, w = frame.shape[:2]
         # Dynamic scaling supporting resolutions from 720p to 8K UHD (7680x4320)
         res_factor = max(0.6, float(min(w, h)) / 720.0)
-        font_scale = max(0.42, 0.42 * (res_factor ** 0.82))
-        sub_scale = max(0.35, 0.35 * (res_factor ** 0.82))
+        font_scale = max(0.42, 0.42 * (res_factor**0.82))
+        sub_scale = max(0.35, 0.35 * (res_factor**0.82))
         line_thick = max(1, round(res_factor))
         bracket_thick = max(2, round(2.2 * res_factor))
         pad = max(3, round(5 * res_factor))
@@ -113,7 +114,9 @@ class OverlayRenderer:
             cv2.line(frame, (wx1, wy2), (wx1, wy1), color, line_thick, cv2.LINE_AA)
 
             if show_corner_brackets:
-                bracket_len = min(int(42 * res_factor), max(int(14 * res_factor), int(min(wx2 - wx1, wy2 - wy1) * 0.22)))
+                bracket_len = min(
+                    int(42 * res_factor), max(int(14 * res_factor), int(min(wx2 - wx1, wy2 - wy1) * 0.22))
+                )
                 self.draw_corner_brackets(frame, wx1, wy1, wx2, wy2, color, thickness=bracket_thick, length=bracket_len)
 
             badge_top = max(4, wy1 - 20)
@@ -131,9 +134,27 @@ class OverlayRenderer:
                     badge_top = wy1 + pad
                 badge_left = max(4, min(wx1, w - badge_w - 4))
 
-                cv2.rectangle(frame, (badge_left, badge_top), (badge_left + badge_w, badge_top + th + (pad * 2)), color, -1)
-                cv2.rectangle(frame, (badge_left, badge_top), (badge_left + badge_w, badge_top + th + (pad * 2)), (255, 255, 255), 1, cv2.LINE_AA)
-                cv2.putText(frame, top_label, (badge_left + pad, badge_top + th + pad - 1), self.font, font_scale, BGR_WHITE, line_thick, cv2.LINE_AA)
+                cv2.rectangle(
+                    frame, (badge_left, badge_top), (badge_left + badge_w, badge_top + th + (pad * 2)), color, -1
+                )
+                cv2.rectangle(
+                    frame,
+                    (badge_left, badge_top),
+                    (badge_left + badge_w, badge_top + th + (pad * 2)),
+                    (255, 255, 255),
+                    1,
+                    cv2.LINE_AA,
+                )
+                cv2.putText(
+                    frame,
+                    top_label,
+                    (badge_left + pad, badge_top + th + pad - 1),
+                    self.font,
+                    font_scale,
+                    BGR_WHITE,
+                    line_thick,
+                    cv2.LINE_AA,
+                )
 
             if not show_status_pills:
                 continue
@@ -222,7 +243,7 @@ class OverlayRenderer:
 
         h, w = frame.shape[:2]
         res_factor = max(0.6, float(min(w, h)) / 720.0)
-        base_scale = max(0.38, 0.38 * (res_factor ** 0.82))
+        base_scale = max(0.38, 0.38 * (res_factor**0.82))
 
         for (x1, y1, x2, y2), label, score in zip(boxes, labels, scores):
             x1, y1 = max(0, int(x1)), max(0, int(y1))
@@ -298,6 +319,10 @@ class OverlayRenderer:
             # 2K QHD: width 2560
             target_w = 2560
             target_h = round(orig_h * (2560.0 / float(orig_w)))
+        elif target_mode == "1080p":
+            # 1080p Full HD: width 1920
+            target_w = 1920
+            target_h = round(orig_h * (1920.0 / float(orig_w)))
         else:
             target_w = orig_w
             target_h = orig_h
@@ -406,9 +431,9 @@ class OverlayRenderer:
             return frame  # Frame too small for HUD overlay
 
         res_factor = max(0.7, float(min(w, h)) / 720.0)
-        hud_font = max(0.40, 0.40 * (res_factor ** 0.82))
-        top_h = max(34, round(36 * (res_factor ** 0.75)))
-        bot_h = max(32, round(34 * (res_factor ** 0.75)))
+        hud_font = max(0.40, 0.40 * (res_factor**0.82))
+        top_h = max(34, round(36 * (res_factor**0.75)))
+        bot_h = max(32, round(34 * (res_factor**0.75)))
         line_thick = max(1, round(res_factor))
 
         # 1. TOP OVERLAY STRIP (In-place SIMD scaling for maximum speed)
@@ -418,22 +443,56 @@ class OverlayRenderer:
         # Top-left LIVE or SIM badge
         badge_text = "SIM" if simulated else "LIVE"
         badge_color = (20, 160, 220) if simulated else (100, 160, 20)  # Amber for SIM, Green for LIVE
-        badge_w = max(58, round(62 * (res_factor ** 0.8)))
-        badge_h = max(24, round(26 * (res_factor ** 0.8)))
+        badge_w = max(58, round(62 * (res_factor**0.8)))
+        badge_h = max(24, round(26 * (res_factor**0.8)))
         by1 = max(4, (top_h - badge_h) // 2)
         cv2.rectangle(frame, (10, by1), (10 + badge_w, by1 + badge_h), badge_color, -1)
-        cv2.circle(frame, (10 + int(10 * res_factor), by1 + badge_h // 2), max(2, round(3 * res_factor)), BGR_WHITE, -1, cv2.LINE_AA)
-        cv2.putText(frame, badge_text, (10 + int(18 * res_factor), by1 + int(badge_h * 0.72)), self.font, hud_font, BGR_WHITE, line_thick, cv2.LINE_AA)
+        cv2.circle(
+            frame,
+            (10 + int(10 * res_factor), by1 + badge_h // 2),
+            max(2, round(3 * res_factor)),
+            BGR_WHITE,
+            -1,
+            cv2.LINE_AA,
+        )
+        cv2.putText(
+            frame,
+            badge_text,
+            (10 + int(18 * res_factor), by1 + int(badge_h * 0.72)),
+            self.font,
+            hud_font,
+            BGR_WHITE,
+            line_thick,
+            cv2.LINE_AA,
+        )
 
         # Center camera & zone
         cam_text = f"{camera_id}  |  {zone_name}"
         (cw, _), _ = cv2.getTextSize(cam_text, self.font, hud_font, line_thick)
-        cv2.putText(frame, cam_text, (max(10 + badge_w + 10, (w - cw) // 2), int(top_h * 0.65)), self.font, hud_font, (220, 230, 235), line_thick, cv2.LINE_AA)
+        cv2.putText(
+            frame,
+            cam_text,
+            (max(10 + badge_w + 10, (w - cw) // 2), int(top_h * 0.65)),
+            self.font,
+            hud_font,
+            (220, 230, 235),
+            line_thick,
+            cv2.LINE_AA,
+        )
 
         # Right clock timestamp
         time_str = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
         (tw, _), _ = cv2.getTextSize(time_str, self.font, hud_font, line_thick)
-        cv2.putText(frame, time_str, (max(w - tw - 16, 10), int(top_h * 0.65)), self.font, hud_font, (180, 200, 205), line_thick, cv2.LINE_AA)
+        cv2.putText(
+            frame,
+            time_str,
+            (max(w - tw - 16, 10), int(top_h * 0.65)),
+            self.font,
+            hud_font,
+            (180, 200, 205),
+            line_thick,
+            cv2.LINE_AA,
+        )
 
         # 2. BOTTOM OVERLAY STRIP (In-place SIMD scaling)
         by1_bot = h - bot_h
@@ -442,7 +501,16 @@ class OverlayRenderer:
 
         # Bottom-left: "YOLO PPE - X personnel"
         tracks_text = f"YOLO PPE - {workers_count} personnel"
-        cv2.putText(frame, tracks_text, (16, h - int(bot_h * 0.32)), self.font, hud_font, (215, 230, 235), line_thick, cv2.LINE_AA)
+        cv2.putText(
+            frame,
+            tracks_text,
+            (16, h - int(bot_h * 0.32)),
+            self.font,
+            hud_font,
+            (215, 230, 235),
+            line_thick,
+            cv2.LINE_AA,
+        )
 
         # Bottom-right: "FPS | latency"
         status_color = BGR_RED if violations_count > 0 else BGR_GREEN
@@ -450,7 +518,16 @@ class OverlayRenderer:
         (pw, _), _ = cv2.getTextSize(perf_text, self.font, hud_font, line_thick)
         dot_x = max(16, w - pw - int(32 * res_factor))
         cv2.circle(frame, (dot_x, h - int(bot_h * 0.48)), max(3, round(5 * res_factor)), status_color, -1, cv2.LINE_AA)
-        cv2.putText(frame, perf_text, (dot_x + int(14 * res_factor), h - int(bot_h * 0.32)), self.font, hud_font, (215, 230, 235), line_thick, cv2.LINE_AA)
+        cv2.putText(
+            frame,
+            perf_text,
+            (dot_x + int(14 * res_factor), h - int(bot_h * 0.32)),
+            self.font,
+            hud_font,
+            (215, 230, 235),
+            line_thick,
+            cv2.LINE_AA,
+        )
 
         return frame
 

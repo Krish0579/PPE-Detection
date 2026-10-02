@@ -1,4 +1,5 @@
 """System configuration, PPE safety policy, and neural sensitivity settings view matching Screenshot 5."""
+
 from __future__ import annotations
 
 import logging
@@ -72,7 +73,9 @@ class SettingsView(QWidget):
         lbl_title.setObjectName("pageTitle")
         title_vbox.addWidget(lbl_title)
 
-        lbl_sub = QLabel("Configure model weights, hardware compute accelerators, per-class confidence thresholds, and PPE policy.")
+        lbl_sub = QLabel(
+            "Configure model weights, hardware compute accelerators, per-class confidence thresholds, and PPE policy."
+        )
         lbl_sub.setObjectName("pageSubtitle")
         title_vbox.addWidget(lbl_sub)
 
@@ -84,7 +87,9 @@ class SettingsView(QWidget):
         pills_row.setSpacing(8)
 
         lbl_shift = QLabel("🗓️ TODAY, SHIFT 1")
-        lbl_shift.setStyleSheet("background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px;")
+        lbl_shift.setStyleSheet(
+            "background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px;"
+        )
         pills_row.addWidget(lbl_shift)
 
         self.badge_status = StatusBadge(status="live", text="● AI VISION ACTIVE")
@@ -222,7 +227,7 @@ class SettingsView(QWidget):
 
         self.slider_conf = QSlider(Qt.Orientation.Horizontal)
         self.slider_conf.setRange(5, 95)
-        self.slider_conf.valueChanged.connect(lambda v: self.lbl_conf_val.setText(f"{v/100:.2f}"))
+        self.slider_conf.valueChanged.connect(lambda v: self.lbl_conf_val.setText(f"{v / 100:.2f}"))
         r_layout.addWidget(self.slider_conf)
 
         # IoU NMS Overlap Floor matching Screenshot 5
@@ -236,7 +241,7 @@ class SettingsView(QWidget):
 
         self.slider_iou = QSlider(Qt.Orientation.Horizontal)
         self.slider_iou.setRange(5, 95)
-        self.slider_iou.valueChanged.connect(lambda v: self.lbl_iou_val.setText(f"{v/100:.2f}"))
+        self.slider_iou.valueChanged.connect(lambda v: self.lbl_iou_val.setText(f"{v / 100:.2f}"))
         r_layout.addWidget(self.slider_iou)
 
         # Per-class sliders collapsible / card
@@ -264,7 +269,7 @@ class SettingsView(QWidget):
             lbl_v = QLabel(f"{default_val:.2f}")
             lbl_v.setFixedWidth(36)
             lbl_v.setStyleSheet("font-size: 11px; font-weight: 700; color: #ef4444;")
-            sl.valueChanged.connect(lambda v, l=lbl_v: l.setText(f"{v/100:.2f}"))
+            sl.valueChanged.connect(lambda v, l=lbl_v: l.setText(f"{v / 100:.2f}"))
             row.addWidget(sl)
             row.addWidget(lbl_v)
             r_layout.addLayout(row)
@@ -353,15 +358,15 @@ class SettingsView(QWidget):
             return
 
         try:
-            validated_path = validate_model_path(
-                path_str, MODEL_DIR, allow_external_paths=ALLOW_EXTERNAL_MODEL_PATH
-            )
+            validated_path = validate_model_path(path_str, MODEL_DIR, allow_external_paths=ALLOW_EXTERNAL_MODEL_PATH)
         except UploadValidationError as exc:
             QMessageBox.warning(self, "Path Rejected", f"Model path rejected:\n{exc}")
             return
 
         try:
-            new_model = load_model(str(validated_path), device=self.cmb_device.currentData(), half=self.chk_half.isChecked())
+            new_model = load_model(
+                str(validated_path), device=self.cmb_device.currentData(), half=self.chk_half.isChecked()
+            )
             self.pipeline.model = new_model
             self._current_weights_path = path_str
             self.lbl_active_path.setText(f"Active model path: {path_str}")
@@ -389,15 +394,9 @@ class SettingsView(QWidget):
         conf = self.slider_conf.value() / 100.0
         iou = self.slider_iou.value() / 100.0
 
-        class_conf = {
-            gear: sl.value() / 100.0
-            for gear, (sl, _) in self.class_sliders.items()
-        }
+        class_conf = {gear: sl.value() / 100.0 for gear, (sl, _) in self.class_sliders.items()}
 
-        req_ppe = {
-            gear: chk.isChecked()
-            for gear, chk in self.chk_ppe.items()
-        }
+        req_ppe = {gear: chk.isChecked() for gear, chk in self.chk_ppe.items()}
 
         mirror = self.chk_mirror.isChecked()
         auto_capture = self.chk_autocapture.isChecked()
@@ -416,4 +415,6 @@ class SettingsView(QWidget):
         self.pipeline.half = self.chk_half.isChecked()
 
         if notify:
-            QMessageBox.information(self, "Settings Applied", "Safety policies and detection parameters updated successfully.")
+            QMessageBox.information(
+                self, "Settings Applied", "Safety policies and detection parameters updated successfully."
+            )

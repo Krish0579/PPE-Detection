@@ -1,4 +1,5 @@
 """Comprehensive test suite for SAFE SIGHT AI PySide6 Desktop Application."""
+
 from __future__ import annotations
 
 import os
@@ -104,7 +105,9 @@ class TestDesktopWidgets:
         assert panel.lbl_count.text() == "0 Active"
 
         w1 = WorkerStatus(worker_id=1, box=(0, 0, 100, 200), helmet_status="COMPLIANT", zone="Zone A")
-        w2 = WorkerStatus(worker_id=2, box=(10, 10, 100, 200), helmet_status="VIOLATION", zone="Zone B", violations=["no_helmet"])
+        w2 = WorkerStatus(
+            worker_id=2, box=(10, 10, 100, 200), helmet_status="VIOLATION", zone="Zone B", violations=["no_helmet"]
+        )
 
         panel.update_workers([w1, w2])
         assert panel.lbl_count.text() == "2 Active"
@@ -116,9 +119,7 @@ class TestDesktopWidgets:
         panel = AlertPanel()
         assert panel.lbl_count.text() == "0 Issues"
 
-        incidents = [
-            {"person_name": "Worker #2", "missing_ppe": {"helmet", "vest"}, "zone": "Zone B"}
-        ]
+        incidents = [{"person_name": "Worker #2", "missing_ppe": {"helmet", "vest"}, "zone": "Zone B"}]
         panel.update_alerts(incidents)
         assert "1 Critical" in panel.lbl_count.text()
 
@@ -134,12 +135,14 @@ class TestDesktopViews:
         assert view.card_workers.lbl_value.text() == "0"
 
         # Update telemetry
-        view.update_telemetry({
-            "total_workers": 5,
-            "safe_workers": 4,
-            "violating_workers": 1,
-            "safety_score": 80.0,
-        })
+        view.update_telemetry(
+            {
+                "total_workers": 5,
+                "safe_workers": 4,
+                "violating_workers": 1,
+                "safety_score": 80.0,
+            }
+        )
         assert view.card_workers.lbl_value.text() == "5"
         assert view.card_compliant.lbl_value.text() == "4"
         assert view.card_violations.lbl_value.text() == "1"

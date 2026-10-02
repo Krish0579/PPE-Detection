@@ -9,6 +9,7 @@ keeps working unchanged. New deployments describe cameras via
 RTSP URLs may embed credentials — they are never logged verbatim; only the
 redacted host form appears in diagnostics.
 """
+
 from __future__ import annotations
 
 import re

@@ -5,6 +5,7 @@ documented surface instead of scattered ``os.environ.get`` calls. All security
 sensitive flags default to the safe value; enabling them requires an explicit
 operator opt-in.
 """
+
 from __future__ import annotations
 
 import os
@@ -62,7 +63,12 @@ class RuntimeConfig:
     environment: str = "production"
     log_level: str = "INFO"
     operator_password_sha256: str = ""
+    supervisor_password_sha256: str = ""
+    admin_password_sha256: str = ""
     auth_required: bool = False
+    session_ttl_min: int = 480
+    session_idle_min: int = 60
+    maintenance_mode: bool = False
     webhook_url: str = ""
     webhook_allowlist: tuple[str, ...] = ()
     rtsp_sources: tuple[str, ...] = ()
@@ -77,6 +83,11 @@ class RuntimeConfig:
     def is_auth_enabled(self) -> bool:
         return bool(self.auth_required and self.operator_password_sha256)
 
+    @property
+    def has_elevated_roles(self) -> bool:
+        """True when supervisor/admin hashes exist (station mode ends)."""
+        return bool(self.supervisor_password_sha256 or self.admin_password_sha256)
+
     def validated(self) -> list[str]:
         """Return human-readable warnings for contradictory settings."""
         warnings: list[str] = []
@@ -86,8 +97,16 @@ class RuntimeConfig:
             warnings.append("PPE_ENABLE_MODEL_UPLOAD=true permits browser checkpoint uploads.")
         if self.auth_required and not self.operator_password_sha256:
             warnings.append("SAFE_SIGHT_AUTH_REQUIRED=true without SAFE_SIGHT_OPERATOR_PASSWORD_SHA256.")
-        if self.webhook_url and self.webhook_allowlist and not any(
-            self.webhook_url.startswith(prefix) for prefix in self.webhook_allowlist
+        if self.supervisor_password_sha256 and self.supervisor_password_sha256 == self.operator_password_sha256:
+            warnings.append("Supervisor and operator passwords are identical — roles cannot be separated.")
+        if self.admin_password_sha256 and self.admin_password_sha256 == self.operator_password_sha256:
+            warnings.append("Admin and operator passwords are identical — roles cannot be separated.")
+        if self.maintenance_mode:
+            warnings.append("Maintenance mode is ON: inference is paused and the evidence store is sealed.")
+        if (
+            self.webhook_url
+            and self.webhook_allowlist
+            and not any(self.webhook_url.startswith(prefix) for prefix in self.webhook_allowlist)
         ):
             warnings.append("SAFE_SIGHT_WEBHOOK_URL is outside SAFE_SIGHT_WEBHOOK_ALLOWLIST.")
         return warnings
@@ -119,7 +138,12 @@ def load_runtime_config(env: dict[str, str] | None = None) -> RuntimeConfig:
         environment=(get("SAFE_SIGHT_ENV") or "production"),
         log_level=(get("SAFE_SIGHT_LOG_LEVEL") or "INFO").upper(),
         operator_password_sha256=(get("SAFE_SIGHT_OPERATOR_PASSWORD_SHA256") or "").strip().lower(),
+        supervisor_password_sha256=(get("SAFE_SIGHT_SUPERVISOR_PASSWORD_SHA256") or "").strip().lower(),
+        admin_password_sha256=(get("SAFE_SIGHT_ADMIN_PASSWORD_SHA256") or "").strip().lower(),
         auth_required=_as_bool(get("SAFE_SIGHT_AUTH_REQUIRED"), False),
+        session_ttl_min=_as_int(get("PPE_SESSION_TTL_MIN"), 480, 5, 10080),
+        session_idle_min=_as_int(get("PPE_SESSION_IDLE_MIN"), 60, 1, 1440),
+        maintenance_mode=_as_bool(get("PPE_MAINTENANCE"), False),
         webhook_url=(get("SAFE_SIGHT_WEBHOOK_URL") or "").strip(),
         webhook_allowlist=allowlist,
         rtsp_sources=rtsp_sources,

@@ -1,4 +1,5 @@
 """Reusable custom widgets for SAFE SIGHT AI desktop."""
+
 from src.desktop.widgets.alert_panel import AlertPanel
 from src.desktop.widgets.camera_selector import CameraSelector
 from src.desktop.widgets.detection_panel import DetectionPanel

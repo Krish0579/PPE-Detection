@@ -4,6 +4,7 @@ Covers the ``Worker #01 ?? VIOLATION`` / ``YOLO PPE ?? N personnel`` /
 ``STANDARD ZONE ?? CAPACITY`` glitches caused by U+00B7 middle dots, plus the
 SIM/LIVE HUD badge honesty flag.
 """
+
 import cv2
 import numpy as np
 import pytest
@@ -39,18 +40,14 @@ def test_hud_and_worker_badges_are_ascii(puttext_spy):
     frame = np.zeros((720, 1280, 3), dtype=np.uint8)
     worker = WorkerStatus(worker_id=1, box=(100, 100, 300, 600))
     renderer.draw_worker_badges(frame, [worker])
-    renderer.draw_telemetry_hud(
-        frame, fps=12.3, violations_count=1, workers_count=1, inference_ms=20.0, simulated=True
-    )
+    renderer.draw_telemetry_hud(frame, fps=12.3, violations_count=1, workers_count=1, inference_ms=20.0, simulated=True)
     _assert_ascii(puttext_spy)
 
 
 def test_simulated_hud_shows_sim_badge_not_live(puttext_spy):
     renderer = get_default_renderer()
     frame = np.zeros((720, 1280, 3), dtype=np.uint8)
-    renderer.draw_telemetry_hud(
-        frame, fps=10.0, violations_count=0, workers_count=2, inference_ms=15.0, simulated=True
-    )
+    renderer.draw_telemetry_hud(frame, fps=10.0, violations_count=0, workers_count=2, inference_ms=15.0, simulated=True)
     assert "SIM" in puttext_spy
     assert "LIVE" not in puttext_spy
 

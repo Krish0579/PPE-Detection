@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import io
 import json
 import logging
@@ -21,6 +22,23 @@ from src.config.settings import DB_PATH, EVIDENCE_DIR, JPEG_QUALITY, MAX_DB_EVEN
 
 logger = logging.getLogger(__name__)
 ALLOWED_EVENT_STATUSES = frozenset({"ACTIVE", "ACKNOWLEDGED", "RESOLVED"})
+# W1.3: hash-chain anchor for the tamper-evident event log. Rows written before
+# the integrity chain carry NULL hashes and are reported as legacy rows.
+CHAIN_GENESIS = "safesight-genesis-v1"
+
+
+def _chain_hash(prev_hash: str, event_id: str, event_type: str, timestamp: float, violation_type: str) -> str:
+    """Deterministic SHA-256 over the immutable identity fields of an event row."""
+    payload = "|".join(
+        (
+            prev_hash,
+            event_id,
+            event_type,
+            f"{float(timestamp):.6f}",
+            (violation_type or ""),
+        )
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 class EvidenceManager:
@@ -40,7 +58,11 @@ class EvidenceManager:
         self.last_error = ""
 
         # Database initialization
-        self.db_path = Path(db_path) if db_path else (self.storage_dir.parent / "ppe_events.db" if self.storage_dir.parent.exists() else DB_PATH)
+        self.db_path = (
+            Path(db_path)
+            if db_path
+            else (self.storage_dir.parent / "ppe_events.db" if self.storage_dir.parent.exists() else DB_PATH)
+        )
         try:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
@@ -49,7 +71,32 @@ class EvidenceManager:
         self._db_lock = threading.Lock()
         self._active_session_id: int | None = None
         self._snapshots_synced = False  # B4: one-time disk -> DB index backfill
+        # W1.4: maintenance seal — when set, every evidence write is refused.
+        self._sealed_reason: str | None = None
         self._init_db()
+
+    @property
+    def sealed(self) -> bool:
+        return self._sealed_reason is not None
+
+    @property
+    def sealed_reason(self) -> str:
+        return self._sealed_reason or ""
+
+    def seal(self, reason: str = "maintenance") -> None:
+        """W1.4: refuse every evidence write (events, snapshots, status changes)."""
+        self._sealed_reason = reason
+        logger.warning("Evidence store SEALED (%s) — writes are refused", reason)
+
+    def unseal(self) -> None:
+        self._sealed_reason = None
+        logger.info("Evidence store unsealed — writes restored")
+
+    def _refuse_if_sealed(self, op: str) -> bool:
+        if self._sealed_reason is None:
+            return False
+        logger.warning("Evidence write refused during %s (sealed: %s)", op, self._sealed_reason)
+        return True
 
     def _get_connection(self) -> sqlite3.Connection:
         """Create a resilient SQLite connection with WAL mode enabled."""
@@ -100,6 +147,8 @@ class EvidenceManager:
                             duration REAL DEFAULT 0.0,
                             snapshot_path TEXT,
                             status TEXT DEFAULT 'ACTIVE',
+                            prev_hash TEXT,
+                            row_hash TEXT,
                             FOREIGN KEY (session_id) REFERENCES sessions(id)
                         );
 
@@ -114,14 +163,98 @@ class EvidenceManager:
                             violation_count INTEGER DEFAULT 0,
                             size_bytes INTEGER DEFAULT 0,
                             event_id TEXT,
-                            session_id INTEGER
+                            session_id INTEGER,
+                            sha256 TEXT
                         );
 
                         CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON snapshots(timestamp DESC);
                         """
                     )
+                # W1.3 additive migration for pre-integrity databases
+                self._migrate_integrity_columns(conn)
             except sqlite3.DatabaseError as exc:
                 self._record_error("Could not initialize the evidence database", exc)
+
+    def _migrate_integrity_columns(self, conn: sqlite3.Connection) -> None:
+        """Idempotently add W1.3 integrity columns to databases that predate them."""
+        for table, col in (("events", "prev_hash"), ("events", "row_hash"), ("snapshots", "sha256")):
+            try:
+                cols = {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+                if col not in cols:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} TEXT")
+                    conn.commit()
+            except sqlite3.DatabaseError as exc:
+                self._record_error(f"Could not migrate {table}.{col}", exc)
+
+    def verify_integrity(self) -> dict:
+        """W1.3 tamper-evidence audit: verify the event hash chain and snapshot digests.
+
+        Returns a report dict. ``chain_ok`` is True when every hash-linked event
+        row recomputes correctly and linked consecutive rows chain without
+        discontinuity. Legacy (NULL-hash) rows are counted, never flagged.
+        Snapshot files are re-hashed from disk; missing/mismatched files are
+        listed. Pruned rows legitimately break genesis anchoring, so only
+        per-row hashes and inter-row continuity are checked.
+        """
+        report: dict = {
+            "events_total": 0,
+            "events_linked": 0,
+            "events_legacy": 0,
+            "chain_ok": True,
+            "tampered_rows": [],
+            "continuity_breaks": [],
+            "snapshots_total": 0,
+            "snapshots_verified": 0,
+            "snapshots_legacy": 0,
+            "missing_files": [],
+            "hash_mismatches": [],
+        }
+        with self._db_lock:
+            try:
+                with self._get_connection() as conn:
+                    rows = conn.execute(
+                        "SELECT rowid, id, timestamp, event_type, violation_type, prev_hash, row_hash "
+                        "FROM events ORDER BY rowid ASC"
+                    ).fetchall()
+                    prev_linked = None
+                    for r in rows:
+                        report["events_total"] += 1
+                        row_hash = r["row_hash"]
+                        if not row_hash:
+                            report["events_legacy"] += 1
+                            prev_linked = None
+                            continue
+                        report["events_linked"] += 1
+                        expected = _chain_hash(r["prev_hash"] or CHAIN_GENESIS, r["id"], r["event_type"], r["timestamp"], r["violation_type"])
+                        if expected != row_hash:
+                            report["chain_ok"] = False
+                            report["tampered_rows"].append(r["id"])
+                        elif prev_linked is not None and r["prev_hash"] != prev_linked:
+                            report["chain_ok"] = False
+                            report["continuity_breaks"].append(r["id"])
+                        prev_linked = row_hash
+
+                    snap_rows = conn.execute("SELECT filename, sha256 FROM snapshots").fetchall()
+                    for row in snap_rows:
+                        report["snapshots_total"] += 1
+                        digest = row["sha256"]
+                        if not digest:
+                            report["snapshots_legacy"] += 1
+                            continue
+                        file_path = self.storage_dir / row["filename"]
+                        if not file_path.exists():
+                            report["missing_files"].append(row["filename"])
+                            continue
+                        actual = hashlib.sha256(file_path.read_bytes()).hexdigest()
+                        if actual != digest:
+                            report["hash_mismatches"].append(row["filename"])
+                        else:
+                            report["snapshots_verified"] += 1
+            except (sqlite3.DatabaseError, OSError) as exc:
+                self._record_error("Integrity verification failed", exc)
+                report["error"] = str(exc)
+                report["chain_ok"] = False
+        return report
 
     def start_session(self, model_path: str = "models/best.pt", device: str = "cpu") -> int:
         """Register a new monitoring session in the database."""
@@ -130,6 +263,7 @@ class EvidenceManager:
                 with self._get_connection() as conn:
                     cur = conn.cursor()
                     from pathlib import Path as _Path
+
                     _model_p = _Path(model_path)
                     try:
                         stored_model_path = str(_model_p.relative_to(PROJECT_ROOT))
@@ -172,7 +306,14 @@ class EvidenceManager:
                         SET total_frames = ?, total_violations = ?, total_persons = ?, compliance_rate = ?, end_time = ?
                         WHERE id = ?
                         """,
-                        (total_frames, total_violations, total_persons, round(compliance_rate, 2), end_time or time.time(), session_id),
+                        (
+                            total_frames,
+                            total_violations,
+                            total_persons,
+                            round(compliance_rate, 2),
+                            end_time or time.time(),
+                            session_id,
+                        ),
                     )
                     conn.commit()
             except sqlite3.DatabaseError as exc:
@@ -209,6 +350,8 @@ class EvidenceManager:
         session_id: int | None = None,
     ) -> str:
         """Record an incident or clearance event in the SQLite database."""
+        if self._refuse_if_sealed("log_event"):
+            return ""
         ts = timestamp or time.time()
         if not event_type or len(event_type) > 64:
             raise ValueError("event_type must contain 1-64 characters")
@@ -342,9 +485,18 @@ class EvidenceManager:
             return None
 
         # Use labels only as a human-readable slug after removing path/control characters.
-        label_slug = "-".join(
-            filter(None, (re.sub(r"[^a-z0-9-]+", "-", str(label).lower()).strip("-") for label in sorted(set(violating_labels))))
-        )[:30] or "violation"
+        label_slug = (
+            "-".join(
+                filter(
+                    None,
+                    (
+                        re.sub(r"[^a-z0-9-]+", "-", str(label).lower()).strip("-")
+                        for label in sorted(set(violating_labels))
+                    ),
+                )
+            )[:30]
+            or "violation"
+        )
         dt_str = datetime.fromtimestamp(ts).strftime("%Y%m%d_%H%M%S") + f"_{int((ts % 1) * 1000):03d}"
         filename = f"viol_{dt_str}_{label_slug}.jpg"
         file_path = self.storage_dir / filename
@@ -401,7 +553,9 @@ class EvidenceManager:
                     violation_type=v_type,
                     timestamp=ts,
                     person_id=person_id,
-                    severity="CRITICAL" if any("helmet" in l.lower() or "vest" in l.lower() for l in violating_labels) else "WARNING",
+                    severity="CRITICAL"
+                    if any("helmet" in l.lower() or "vest" in l.lower() for l in violating_labels)
+                    else "WARNING",
                     snapshot_path=rel_path,
                 )
             except (sqlite3.DatabaseError, ValueError) as exc:
@@ -452,7 +606,10 @@ class EvidenceManager:
         m = re.match(r"^viol_(\d{8})_(\d{6})_(\d{3})_([A-Za-z0-9\-]+)\.jpg$", filename)
         if m:
             try:
-                ts = datetime.strptime(f"{m.group(1)}_{m.group(2)}", "%Y%m%d_%H%M%S").astimezone().timestamp() + int(m.group(3)) / 1000.0
+                ts = (
+                    datetime.strptime(f"{m.group(1)}_{m.group(2)}", "%Y%m%d_%H%M%S").astimezone().timestamp()
+                    + int(m.group(3)) / 1000.0
+                )
                 return ts, m.group(4)
             except ValueError:
                 pass
@@ -649,12 +806,14 @@ class EvidenceManager:
                         jpeg_bytes = None
                 if jpeg_bytes:
                     zf.writestr(filename, jpeg_bytes)
-                    manifest_items.append({
-                        "index": i,
-                        "filename": filename,
-                        "timestamp": ts_val,
-                        "labels": snap.get("labels", []),
-                    })
+                    manifest_items.append(
+                        {
+                            "index": i,
+                            "filename": filename,
+                            "timestamp": ts_val,
+                            "labels": snap.get("labels", []),
+                        }
+                    )
             manifest_json = json.dumps(
                 {
                     "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -725,7 +884,7 @@ class EvidenceManager:
 
     def export_shift_audit_csv(self, session_id: int | None = None) -> str:
         """Generate a comprehensive shift audit CSV report for OSHA/ISO 45001 compliance.
-        
+
         Returns CSV string with columns:
         [Timestamp, Worker ID, Zone, Helmet, Vest, Gloves, Boots, Goggles, Compliance Status, Incident Note]
         """
@@ -735,18 +894,13 @@ class EvidenceManager:
                     # Get all events for the session (or all if None)
                     if session_id is not None:
                         rows = conn.execute(
-                            "SELECT * FROM events WHERE session_id = ? ORDER BY timestamp ASC",
-                            (session_id,)
+                            "SELECT * FROM events WHERE session_id = ? ORDER BY timestamp ASC", (session_id,)
                         ).fetchall()
                     else:
-                        rows = conn.execute(
-                            "SELECT * FROM events ORDER BY timestamp ASC"
-                        ).fetchall()
-                    
+                        rows = conn.execute("SELECT * FROM events ORDER BY timestamp ASC").fetchall()
+
                     # Also get session info for context
-                    conn.execute(
-                        "SELECT * FROM sessions ORDER BY start_time DESC LIMIT 1"
-                    ).fetchall()
+                    conn.execute("SELECT * FROM sessions ORDER BY start_time DESC LIMIT 1").fetchall()
             except sqlite3.DatabaseError as exc:
                 self._record_error("Could not query events for shift audit", exc)
                 return "Timestamp,Worker ID,Zone,Helmet,Vest,Gloves,Boots,Goggles,Compliance Status,Incident Note\n"
@@ -756,7 +910,7 @@ class EvidenceManager:
 
         # Build per-worker compliance timeline from events
         worker_compliance: dict[int, dict[str, Any]] = {}
-        
+
         for row in rows:
             person_id = row["person_id"] or 1
             ts = row["timestamp"]
@@ -764,22 +918,22 @@ class EvidenceManager:
             event_type = row["event_type"]
             violation_type = row["violation_type"] or ""
             status = row["status"]
-            
+
             if person_id not in worker_compliance:
                 worker_compliance[person_id] = {
                     "helmet": "UNKNOWN",
-                    "vest": "UNKNOWN", 
+                    "vest": "UNKNOWN",
                     "gloves": "UNKNOWN",
                     "boots": "UNKNOWN",
                     "goggles": "UNKNOWN",
                     "zone": "Production Floor",
                     "violations": [],
-                    "last_update": ts
+                    "last_update": ts,
                 }
-            
+
             w_data = worker_compliance[person_id]
             w_data["last_update"] = max(w_data["last_update"], ts)
-            
+
             # Parse violations from event
             if event_type in ("VIOLATION", "VIOLATION_UPDATE") and violation_type:
                 for v in violation_type.split(","):
@@ -796,16 +950,26 @@ class EvidenceManager:
                         w_data["goggles"] = "VIOLATION"
                     if "restrict" in v or "zone" in v:
                         w_data["zone"] = "Restricted Zone"
-                
+
                 w_data["violations"].append(f"{dt_str}: {violation_type} ({status})")
 
         # Generate RFC 4180 compliant CSV content
         out_buf = io.StringIO()
         writer = csv.writer(out_buf)
-        writer.writerow([
-            "Timestamp", "Worker ID", "Zone", "Helmet", "Vest",
-            "Gloves", "Boots", "Goggles", "Compliance Status", "Incident Note"
-        ])
+        writer.writerow(
+            [
+                "Timestamp",
+                "Worker ID",
+                "Zone",
+                "Helmet",
+                "Vest",
+                "Gloves",
+                "Boots",
+                "Goggles",
+                "Compliance Status",
+                "Incident Note",
+            ]
+        )
 
         for worker_id, data in sorted(worker_compliance.items()):
             dt_str = datetime.fromtimestamp(data["last_update"]).strftime("%Y-%m-%d %H:%M:%S")
@@ -817,18 +981,20 @@ class EvidenceManager:
 
             incident_note = "; ".join(data["violations"][-3:]) if data["violations"] else "No violations recorded"
 
-            writer.writerow([
-                dt_str,
-                f"Worker #{worker_id:02d}",
-                data["zone"],
-                data["helmet"],
-                data["vest"],
-                data["gloves"],
-                data["boots"],
-                data["goggles"],
-                compliance_status,
-                incident_note,
-            ])
+            writer.writerow(
+                [
+                    dt_str,
+                    f"Worker #{worker_id:02d}",
+                    data["zone"],
+                    data["helmet"],
+                    data["vest"],
+                    data["gloves"],
+                    data["boots"],
+                    data["goggles"],
+                    compliance_status,
+                    incident_note,
+                ]
+            )
 
         return out_buf.getvalue()
 
@@ -837,10 +1003,10 @@ class EvidenceManager:
         try:
             files = list(self.storage_dir.glob("viol_*.jpg"))
             total_count = len(files)
-            
+
             total_size_bytes = 0
             oldest_ts = None
-            
+
             for f in files:
                 try:
                     stat = f.stat()
@@ -849,10 +1015,10 @@ class EvidenceManager:
                         oldest_ts = stat.st_mtime
                 except OSError:
                     continue
-            
+
             total_size_mb = total_size_bytes / (1024 * 1024)
             oldest_str = datetime.fromtimestamp(oldest_ts).strftime("%Y-%m-%d %H:%M:%S") if oldest_ts else "N/A"
-            
+
             return {
                 "file_count": total_count,
                 "total_size_mb": round(total_size_mb, 2),
@@ -874,14 +1040,15 @@ class EvidenceManager:
 
     def prune_stale_snapshots(self, older_than_hours: int = 24) -> dict[str, Any]:
         """Remove evidence snapshots older than specified hours.
-        
+
         Returns dict with count of deleted files and bytes freed.
         """
         import time as time_module
+
         cutoff = time_module.time() - (older_than_hours * 3600)
         deleted_count = 0
         freed_bytes = 0
-        
+
         try:
             for f in self.storage_dir.glob("viol_*.jpg"):
                 try:
@@ -892,10 +1059,10 @@ class EvidenceManager:
                         deleted_count += 1
                 except OSError:
                     continue
-            
+
             # Also clean up associated database events for deleted snapshots (optional, keeps DB size in check)
             # We don't auto-delete DB rows as they serve as audit trail
-            
+
             return {
                 "deleted_count": deleted_count,
                 "freed_mb": round(freed_bytes / (1024 * 1024), 2),

@@ -1,4 +1,5 @@
 """Focused command-center styling layered over Streamlit's accessible controls."""
+
 from __future__ import annotations
 
 

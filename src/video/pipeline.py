@@ -1,4 +1,5 @@
 """Real-time WebRTC frame processing pipeline and thread-safe telemetry state."""
+
 from __future__ import annotations
 
 import threading
@@ -41,6 +42,7 @@ from src.video.renderer import OverlayRenderer
 @dataclass
 class TelemetryState:
     """Thread-safe state shared between WebRTC worker thread and Streamlit UI."""
+
     lock: threading.Lock = field(default_factory=threading.Lock)
 
     # Runtime configuration
@@ -185,54 +187,64 @@ class TelemetryState:
                     v_clean = [v.replace("_", " ").title() for v in w.violations]
                     v_str = ", ".join([v.lower() for v in v_clean]) if v_clean else "safety violation"
                     person_reports.append(f"Person {w.worker_id} - {v_str}")
-                    person_records.append({
-                        "worker_id": w.worker_id,
-                        "person_name": f"Person {w.worker_id}",
-                        "missing_ppe": v_clean if v_clean else ["Safety Violation"],
-                        "zone": getattr(w, "zone", "Production Floor"),
-                        "dwell_seconds": getattr(w, "dwell_seconds", 0.0),
-                    })
+                    person_records.append(
+                        {
+                            "worker_id": w.worker_id,
+                            "person_name": f"Person {w.worker_id}",
+                            "missing_ppe": v_clean if v_clean else ["Safety Violation"],
+                            "zone": getattr(w, "zone", "Production Floor"),
+                            "dwell_seconds": getattr(w, "dwell_seconds", 0.0),
+                        }
+                    )
 
-            violating_labels = person_reports if person_reports else sorted({d["label"] for d in detections if d["violation"]})
+            violating_labels = (
+                person_reports if person_reports else sorted({d["label"] for d in detections if d["violation"]})
+            )
 
             was_violating = self.violating
             if not was_violating and self.violation_streak >= VIOLATION_CONFIRM_FRAMES:
                 self.violating = True
                 self.violation_seq += 1
                 self._last_violation_labels = set(violating_labels)
-                self.event_log.appendleft({
-                    "ts": now,
-                    "type": "VIOLATION",
-                    "violations": violations_count,
-                    "labels": violating_labels,
-                    "person_reports": person_reports,
-                    "person_records": person_records,
-                })
+                self.event_log.appendleft(
+                    {
+                        "ts": now,
+                        "type": "VIOLATION",
+                        "violations": violations_count,
+                        "labels": violating_labels,
+                        "person_reports": person_reports,
+                        "person_records": person_records,
+                    }
+                )
             elif was_violating and violations_count > 0:
                 current_labels = set(violating_labels)
-                prev_labels = getattr(self, '_last_violation_labels', set())
+                prev_labels = getattr(self, "_last_violation_labels", set())
                 new_labels = current_labels - prev_labels
                 if new_labels:
                     self._last_violation_labels = current_labels
-                    self.event_log.appendleft({
-                        "ts": now,
-                        "type": "VIOLATION_UPDATE",
-                        "violations": violations_count,
-                        "labels": list(current_labels),
-                        "person_reports": person_reports,
-                        "person_records": person_records,
-                    })
+                    self.event_log.appendleft(
+                        {
+                            "ts": now,
+                            "type": "VIOLATION_UPDATE",
+                            "violations": violations_count,
+                            "labels": list(current_labels),
+                            "person_reports": person_reports,
+                            "person_records": person_records,
+                        }
+                    )
             elif was_violating and self.clean_streak >= VIOLATION_CLEAR_FRAMES:
                 self.violating = False
                 self._last_violation_labels = set()
-                self.event_log.appendleft({
-                    "ts": now,
-                    "type": "CLEARED",
-                    "violations": 0,
-                    "labels": [],
-                    "person_reports": [],
-                    "person_records": [],
-                })
+                self.event_log.appendleft(
+                    {
+                        "ts": now,
+                        "type": "CLEARED",
+                        "violations": 0,
+                        "labels": [],
+                        "person_reports": [],
+                        "person_records": [],
+                    }
+                )
 
     def publish_error(self, err: str) -> None:
         with self.lock:
@@ -332,6 +344,7 @@ class VideoPipeline:
             import importlib
 
             import src.video.renderer as _rmod
+
             _rmod = importlib.reload(_rmod)
             self.renderer = _rmod.OverlayRenderer()
             return self.renderer.render_8k_clarity_canvas(*args, **kwargs)
@@ -399,7 +412,9 @@ class VideoPipeline:
                     )
                 dt = max(time.perf_counter() - t0, 1e-6)
                 instant_fps = 1.0 / dt
-                self.smoothed_fps = 0.85 * self.smoothed_fps + 0.15 * instant_fps if self.smoothed_fps > 0 else instant_fps
+                self.smoothed_fps = (
+                    0.85 * self.smoothed_fps + 0.15 * instant_fps if self.smoothed_fps > 0 else instant_fps
+                )
 
                 workers = (
                     associate_ppe_to_workers(
@@ -515,5 +530,3 @@ class VideoPipeline:
             self.state.latest_frame = img
 
         return img
-
-

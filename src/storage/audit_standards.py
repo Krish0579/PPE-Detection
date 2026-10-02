@@ -1,4 +1,5 @@
 """OSHA and ISO 45001 Regulatory Standards and Canvas Helpers for SafeSight Audits."""
+
 from __future__ import annotations
 
 from typing import Any

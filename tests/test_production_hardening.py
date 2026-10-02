@@ -1,4 +1,5 @@
 """Phase 5 production-hardening tests (offline, no model weights required)."""
+
 from __future__ import annotations
 
 import hashlib
@@ -13,7 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.__version__ import __version__
-from src.alerts.webhooks import build_violation_payload, post_json
+from src.alerts.webhooks import _is_allowed, build_violation_payload, post_json
 from src.config.runtime import load_runtime_config
 from src.observability.health import build_health_payload
 from src.privacy.blur import blur_person_boxes, blur_regions
@@ -106,6 +107,71 @@ def test_webhook_payload_and_guards():
     assert blocked.ok is False and "allowlist" in blocked.reason
 
 
+def test_webhook_allowlist_host_hardening():
+    """SSRF regression: string-prefix allowlists admitted domain-suffix attacks."""
+    allow = ("https://hooks.slack.com/",)
+    assert _is_allowed("https://hooks.slack.com/services/T/B/x", allow) is True
+    # Domain suffix attack must fail even though the URL starts with the entry string.
+    assert _is_allowed("https://hooks.slack.com.evil.example/", allow) is False
+    # Userinfo redirect trick must fail.
+    assert _is_allowed("https://hooks.slack.com@evil.example/x", allow) is False
+    # Scheme downgrade (https entry -> http candidate) must fail.
+    assert _is_allowed("http://hooks.slack.com/services/T/B/x", allow) is False
+    # Path-scoped entries: match beneath the path, not string-lookalikes.
+    scoped = ("https://example.com/hooks/",)
+    assert _is_allowed("https://example.com/hooks/a", scoped) is True
+    assert _is_allowed("https://example.com/hooksetc", scoped) is False
+    assert _is_allowed("https://example.com/other", scoped) is False
+    # Host lookalike with shared prefix must fail.
+    assert _is_allowed("https://example.com.evil.example/hooks/a", scoped) is False
+    # Bare-host entries match the whole host.
+    assert _is_allowed("https://hooks.slack.com/anything", ("hooks.slack.com",)) is True
+    # Empty allowlist keeps the documented allow-all behaviour.
+    assert _is_allowed("https://anything.example/x", ()) is True
+    # Unparseable or credential-bearing URLs fail closed.
+    assert _is_allowed("https://user:pw@example.example/x", allow) is False
+    credentialed = post_json("https://user:pw@hooks.slack.com/services/T/B/x", {}, allowlist=allow)
+    assert credentialed.ok is False and "credentials" in credentialed.reason
+
+
+def test_rotating_file_logging_behaviour(monkeypatch, tmp_path):
+    import logging
+
+    import src.observability.logging_setup as ls
+
+    # Env resolution matrix
+    monkeypatch.setenv("SAFE_SIGHT_LOG_FILE", "off")
+    assert ls._resolve_log_file() is None
+    monkeypatch.setenv("SAFE_SIGHT_LOG_FILE", str(tmp_path / "custom.log"))
+    assert ls._resolve_log_file() == tmp_path / "custom.log"
+    monkeypatch.delenv("SAFE_SIGHT_LOG_FILE")
+    monkeypatch.setenv("SAFE_SIGHT_CONTAINER", "1")
+    assert ls._resolve_log_file() is None
+
+    # End-to-end: a log line must land in the rotating file without breaking stdout logging.
+    root = logging.getLogger()
+    saved_handlers, saved_flag = list(root.handlers), ls._CONFIGURED
+    monkeypatch.delenv("SAFE_SIGHT_CONTAINER")
+    monkeypatch.setenv("SAFE_SIGHT_LOG_FILE", str(tmp_path / "safesight.log"))
+    try:
+        ls._CONFIGURED = False
+        ls.configure_logging("DEBUG")
+        from logging.handlers import RotatingFileHandler
+
+        assert any(isinstance(h, RotatingFileHandler) for h in logging.getLogger().handlers)
+        logging.getLogger("safesight.test").info("rotation-smoke")
+        for h in root.handlers:
+            h.flush()
+        assert "rotation-smoke" in (tmp_path / "safesight.log").read_text()
+    finally:
+        for h in list(root.handlers):
+            h.close()
+            root.removeHandler(h)
+        for h in saved_handlers:
+            root.addHandler(h)
+        ls._CONFIGURED = saved_flag
+
+
 def test_camera_registry_parsing_and_redaction():
     sources = parse_camera_sources("usb:0, rtsp:rtsp://admin:secret@cam-02:554/s, https://cam-03/mjpeg, demo, junk")
     kinds = [s.kind for s in sources]
@@ -130,7 +196,10 @@ def test_privacy_blur_changes_roi_only():
 
 def test_privacy_blur_person_detections():
     frame = np.full((30, 30, 3), 128, dtype=np.uint8)
-    dets = [{"label": "person", "x1": 2, "y1": 2, "x2": 12, "y2": 12}, {"label": "helmet", "x1": 0, "y1": 0, "x2": 5, "y2": 5}]
+    dets = [
+        {"label": "person", "x1": 2, "y1": 2, "x2": 12, "y2": 12},
+        {"label": "helmet", "x1": 0, "y1": 0, "x2": 5, "y2": 5},
+    ]
     out = blur_person_boxes(frame, dets)
     assert out.shape == frame.shape
 

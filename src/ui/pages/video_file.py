@@ -1,4 +1,5 @@
 """Video File page — offline recorded-footage PPE audit with frame scrubbing."""
+
 from __future__ import annotations
 
 import hashlib
@@ -64,7 +65,6 @@ def render(ctx: AppContext) -> None:
             vid_path = None
 
         if vid_path:
-
             cap = None
             try:
                 cap = cv2.VideoCapture(vid_path)
@@ -97,7 +97,9 @@ def render(ctx: AppContext) -> None:
                         with col_c1:
                             run_vid_infer = st.toggle("▶ Run AI Detection", value=True, key="toggle_vid_ai")
                         with col_c2:
-                            current_idx = st.slider("Timeline Scrubber", 0, max(0, total_frames - 1), 0, key="vid_scrubber_slider")
+                            current_idx = st.slider(
+                                "Timeline Scrubber", 0, max(0, total_frames - 1), 0, key="vid_scrubber_slider"
+                            )
                         with col_c3:
                             st.caption(f"Frame {current_idx + 1} / {total_frames}")
 
@@ -124,13 +126,21 @@ def render(ctx: AppContext) -> None:
                             v_safe = sum(1 for w in v_workers if w.is_compliant)
                             v_score = 100.0 if v_tot == 0 else max(0.0, min(100.0, (v_safe / float(v_tot)) * 100.0))
 
-                            render_metrics_grid(total_workers=v_tot, safe_workers=v_safe, violations=v_viol, safety_score=v_score)
+                            render_metrics_grid(
+                                total_workers=v_tot, safe_workers=v_safe, violations=v_viol, safety_score=v_score
+                            )
 
                             if v_workers:
                                 st.markdown("#### Frame Personnel & PPE Inspection")
                                 render_workers_grid(v_workers)
-                                with st.expander("📋 Detailed Personnel Safety & PPE Checklist (All 5 Categories)", expanded=True):
-                                    st.dataframe(build_workers_status_dataframe(v_workers), use_container_width=True, hide_index=True)
+                                with st.expander(
+                                    "📋 Detailed Personnel Safety & PPE Checklist (All 5 Categories)", expanded=True
+                                ):
+                                    st.dataframe(
+                                        build_workers_status_dataframe(v_workers),
+                                        use_container_width=True,
+                                        hide_index=True,
+                                    )
 
                             col_save1, col_save2 = st.columns([2, 2])
                             with col_save1:

@@ -4,6 +4,7 @@ Periodic refresh uses ``st.fragment(run_every=0.5)`` scoped to the telemetry
 subtree only (2 Hz): re-rendering the full page at 20 Hz raced Streamlit's DOM
 reconciliation and caused visible flicker/overlap (glitch fix G1).
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -19,6 +20,7 @@ try:
         WebRtcMode,
         webrtc_streamer,
     )
+
     HAS_WEBRTC = True
     RTC_LOCAL_CONFIGURATION = RTCConfiguration({"iceServers": []})
     RTC_CLOUD_CONFIGURATION = RTCConfiguration(
@@ -42,6 +44,7 @@ from src.ui.components import (
     play_violation_chime,
     render_audio_alert_script,
     render_compliance_panel,
+    render_empty_state,
     render_html,
     render_metrics_grid,
     render_page_header,
@@ -160,7 +163,9 @@ def render_camera_viewport(ctx: AppContext) -> None:
 
     if camera_manager.last_error:
         st.error(f"⚠️ {camera_manager.last_error}")
-        st.info("💡 **Recommended**: Switch to **'🌐 Browser Webcam (WebRTC · 30 FPS)'** or **'📸 Camera Snapshot (Instant)'** above to stream directly from your browser webcam without server driver barriers.")
+        st.info(
+            "💡 **Recommended**: Switch to **'🌐 Browser Webcam (WebRTC · 30 FPS)'** or **'📸 Camera Snapshot (Instant)'** above to stream directly from your browser webcam without server driver barriers."
+        )
 
 
 def render(ctx: AppContext) -> None:
@@ -202,32 +207,32 @@ def render(ctx: AppContext) -> None:
 
     # --- Audio Alarm Toggle & Viewport Customization (Global for all feed sources) ---
     render_audio_alert_script(active=st.session_state.audio_alarms_enabled)
-    
+
     with st.expander("🔊 Audio Alarm & 👁️ Viewport Overlay Settings", expanded=False):
         col_audio, col_viewport = st.columns([1, 2], gap="large")
-        
+
         with col_audio:
             st.markdown("#### 🔊 Audio Alarm")
             audio_enabled = st.toggle(
                 "Enable Industrial Chime on Violation",
                 value=st.session_state.audio_alarms_enabled,
                 key="audio_alarm_toggle",
-                help="Plays an 880Hz synthesized industrial chime when a new safety violation is detected. Uses Web Audio API - no audio files required."
+                help="Plays an 880Hz synthesized industrial chime when a new safety violation is detected. Uses Web Audio API - no audio files required.",
             )
             if audio_enabled != st.session_state.audio_alarms_enabled:
                 st.session_state.audio_alarms_enabled = audio_enabled
                 st.rerun()
-            
+
             if audio_enabled:
                 st.caption("🔈 Chime will play on first violation frame (STATE.violation_streak == 1)")
                 if st.button("🔊 Test Chime", key="test_chime_btn"):
                     play_violation_chime()
                     st.toast("🔊 Chime played successfully!")
-        
+
         with col_viewport:
             st.markdown("#### 👁️ Viewport Overlay Toggles")
             st.caption("Toggle individual overlay elements for minimalist or ultra-detailed view")
-            
+
             c1, c2 = st.columns(2)
             with c1:
                 lbl = st.checkbox(
@@ -312,11 +317,13 @@ def render(ctx: AppContext) -> None:
             )
         else:
             webrtc_ctx = None
-            st.warning("WebRTC streamer unavailable in this environment. Please switch to '📸 Direct Browser Camera' above.")
+            st.warning(
+                "WebRTC streamer unavailable in this environment. Please switch to '📸 Direct Browser Camera' above."
+            )
 
-        is_webrtc_live = bool(HAS_WEBRTC and webrtc_ctx and getattr(webrtc_ctx.state, "playing", False))
+        _is_webrtc_live = bool(HAS_WEBRTC and webrtc_ctx and getattr(webrtc_ctx.state, "playing", False))
 
-        @st.fragment(run_every=1.0 if is_webrtc_live else None)
+        @st.fragment(run_every=0.5)
         def render_webrtc_telemetry_fragment():
             data = STATE.snapshot_ui()
             workers = data["workers"]
@@ -347,11 +354,11 @@ def render(ctx: AppContext) -> None:
                     <div>
                         <span class="badge badge-green">LIVE WEBRTC INFERENCE</span>
                         <span style="font-size: 11px; margin-left: 10px; color: var(--secondary);">
-                            <strong>{len(data['detections'])}</strong> detections · <strong>{total_w}</strong> personnel · <strong>{viol_w}</strong> violations
+                            <strong>{len(data["detections"])}</strong> detections · <strong>{total_w}</strong> personnel · <strong>{viol_w}</strong> violations
                         </span>
                     </div>
                     <div style="font-size: 11px; font-family: monospace; color: var(--green);">
-                        ⚡ {data['fps']:.1f} FPS │ {data['inference_ms']:.0f} ms
+                        ⚡ {data["fps"]:.1f} FPS │ {data["inference_ms"]:.0f} ms
                     </div>
                 </div>
                 """
@@ -361,7 +368,9 @@ def render(ctx: AppContext) -> None:
             render_metrics_grid(total_workers=total_w, safe_workers=safe_w, violations=viol_w, safety_score=score)
 
             # Row 2: Compliance Panel
-            render_compliance_panel(counts, score, total_tracked=total_w, workers=workers, required_ppe=STATE.required_ppe)
+            render_compliance_panel(
+                counts, score, total_tracked=total_w, workers=workers, required_ppe=STATE.required_ppe
+            )
 
             # Row 3: Tracked Personnel Cards
             if workers:
@@ -386,9 +395,13 @@ def render(ctx: AppContext) -> None:
             camera_manager.stop()
             st.session_state.cam_stream_active = False
 
-        st.caption("Instant camera capture directly from your browser. Click the button below to take a live photo and immediately execute PPE safety inspection.")
+        st.caption(
+            "Instant camera capture directly from your browser. Click the button below to take a live photo and immediately execute PPE safety inspection."
+        )
 
-        cam_snap = st.camera_input("Take Live Photo for Inspection", key="camera_input_live_feed", label_visibility="collapsed")
+        cam_snap = st.camera_input(
+            "Take Live Photo for Inspection", key="camera_input_live_feed", label_visibility="collapsed"
+        )
 
         c_v, c_p = st.columns([1.8, 1.2], gap="large")
         with c_v:
@@ -399,8 +412,10 @@ def render(ctx: AppContext) -> None:
                     st.error("The camera capture could not be decoded. Please take another photo.")
                     raw_img = None
 
+                clean_img = None
                 if raw_img is not None:
-                    _ = pipeline.process_numpy_frame(raw_img, force_infer=True)
+                    clean_img = raw_img.copy()
+                    _ = pipeline.process_numpy_frame(raw_img.copy(), force_infer=True)
                 data = STATE.snapshot_ui()
 
                 # Audio alarm trigger for Direct Browser Camera
@@ -416,8 +431,8 @@ def render(ctx: AppContext) -> None:
                 elif viol_count == 0:
                     st.session_state.last_violation_streak = 0
 
-                if raw_img is not None:
-                    t_mode = "8K"
+                if clean_img is not None:
+                    t_mode = "1080p"
                     render_fn = getattr(pipeline.renderer, "render_8k_clarity_canvas", render_8k_clarity_canvas)
                     render_kwargs = {
                         "workers": data["workers"],
@@ -436,23 +451,25 @@ def render(ctx: AppContext) -> None:
                         "show_status_pills": st.session_state.overlay_show_status_pills,
                     }
                     try:
-                        annotated = render_fn(raw_img, **render_kwargs)
+                        annotated = render_fn(clean_img, **render_kwargs)
                     except TypeError:
                         import importlib
 
                         import src.video.renderer as _rmod
+
                         _rmod = importlib.reload(_rmod)
                         pipeline.renderer = _rmod.OverlayRenderer()
-                        annotated = pipeline.renderer.render_8k_clarity_canvas(raw_img, **render_kwargs)
+                        annotated = pipeline.renderer.render_8k_clarity_canvas(clean_img, **render_kwargs)
                     st.session_state["latest_annotated_frame"] = annotated
-                    
+
                     # Add to session inspection filmstrip (cap at 5)
                     import time as time_module
+
                     current_ts = time_module.time()
                     st.session_state.recent_inspections.insert(0, (annotated.copy(), current_ts, data["workers"]))
                     if len(st.session_state.recent_inspections) > 5:
                         st.session_state.recent_inspections.pop()
-                    
+
                     st.caption(f"Visual viewport · rendered in {t_mode} ({annotated.shape[1]}×{annotated.shape[0]})")
                     st.image(annotated, channels="BGR", use_container_width=True)
 
@@ -466,17 +483,14 @@ def render(ctx: AppContext) -> None:
                             use_container_width=True,
                         )
             else:
-                standby = np.full((400, 700, 3), 245, dtype=np.uint8)
-                cv2.putText(
-                    standby,
-                    "TAKE A LIVE CAMERA PHOTO ABOVE TO AUDIT",
-                    (60, 200),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.60,
-                    (60, 100, 80),
-                    2,
+                # U1: themed empty state (replaced the flat-color cv2.putText placeholder
+                # that ignored light/dark mode and didn't scale responsively).
+                render_empty_state(
+                    "📸",
+                    "Take a live camera photo above to audit",
+                    "The snapshot inference viewport updates as soon as a photo is captured.",
+                    "Use the camera control at the top of this page",
                 )
-                st.image(standby, channels="BGR", use_container_width=True)
 
             data = STATE.snapshot_ui()
             render_html(
@@ -485,11 +499,11 @@ def render(ctx: AppContext) -> None:
                     <div>
                         <span class="badge badge-green">SNAPSHOT INFERENCE</span>
                         <span style="font-size: 11px; margin-left: 10px; color: var(--secondary);">
-                            <strong>{len(data['detections'])}</strong> detections · <strong>{len(data['workers'])}</strong> personnel
+                            <strong>{len(data["detections"])}</strong> detections · <strong>{len(data["workers"])}</strong> personnel
                         </span>
                     </div>
                     <div style="font-size: 11px; font-family: monospace; color: var(--green);">
-                        ⚡ {data['fps']:.1f} FPS │ {data['inference_ms']:.0f} ms
+                        ⚡ {data["fps"]:.1f} FPS │ {data["inference_ms"]:.0f} ms
                     </div>
                 </div>
                 """
@@ -504,7 +518,9 @@ def render(ctx: AppContext) -> None:
         score = 100.0 if total_w == 0 else max(0.0, min(100.0, (safe_w / float(total_w)) * 100.0))
 
         with c_p:
-            render_compliance_panel(counts, score, total_tracked=total_w, workers=workers, required_ppe=STATE.required_ppe)
+            render_compliance_panel(
+                counts, score, total_tracked=total_w, workers=workers, required_ppe=STATE.required_ppe
+            )
 
         # KPI Metrics
         render_metrics_grid(total_workers=total_w, safe_workers=safe_w, violations=viol_w, safety_score=score)
@@ -529,22 +545,26 @@ def render(ctx: AppContext) -> None:
         if st.session_state.recent_inspections:
             st.markdown("#### 📸 Session Inspection Filmstrip")
             st.caption("Last 5 captures — click to review before/after PPE corrections")
-            
+
             film_cols = st.columns(min(5, len(st.session_state.recent_inspections)))
             for idx, (insp_img, insp_ts, insp_workers) in enumerate(st.session_state.recent_inspections):
                 with film_cols[idx]:
                     dt_str = datetime.fromtimestamp(insp_ts).strftime("%H:%M:%S")
                     viol_count = sum(1 for w in insp_workers if w.has_active_violation)
                     badge_text = f"{viol_count} violations" if viol_count > 0 else "Compliant"
-                    
+
                     st.image(insp_img, channels="BGR", use_container_width=True, caption=f"{dt_str} · {badge_text}")
-                    
+
                     if st.button("View", key=f"filmstrip_view_{idx}", use_container_width=True):
                         # Show larger view in a modal-like expander
                         with st.expander(f"Inspection Detail — {dt_str}", expanded=True):
                             st.image(insp_img, channels="BGR", use_container_width=True)
                             if insp_workers:
-                                st.dataframe(build_workers_status_dataframe(insp_workers), use_container_width=True, hide_index=True)
+                                st.dataframe(
+                                    build_workers_status_dataframe(insp_workers),
+                                    use_container_width=True,
+                                    hide_index=True,
+                                )
 
     else:
         # Hardware OpenCV Live Camera
@@ -607,7 +627,7 @@ def render(ctx: AppContext) -> None:
                             </span>
                         </div>
                         <div style="font-size: 11px; font-family: monospace; color: var(--green);">
-                            ⚡ {fps_disp:.1f} FPS │ {data['inference_ms']:.0f} ms
+                            ⚡ {fps_disp:.1f} FPS │ {data["inference_ms"]:.0f} ms
                         </div>
                     </div>
                     """

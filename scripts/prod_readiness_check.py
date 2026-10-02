@@ -5,6 +5,7 @@ Checks: secure defaults, trusted model dir policy, lockfile freshness hint,
 required deploy artifacts, evidence DB schema, and new hardening modules.
 Exit 0 = ready, exit 2 = blocking findings.
 """
+
 from __future__ import annotations
 
 import sys
@@ -71,7 +72,10 @@ def main() -> int:
         from src.video.camera_registry import parse_camera_sources
 
         check("health payload", build_health_payload(model_loaded=False)["status"] == "degraded")
-        check("auth + RBAC", verify_password("x", __import__("hashlib").sha256(b"x").hexdigest()) and can("admin", "purge"))
+        check(
+            "auth + RBAC",
+            verify_password("x", __import__("hashlib").sha256(b"x").hexdigest()) and can("admin", "purge"),
+        )
         check("webhook payload", build_violation_payload(["no-helmet"], 1, 1, 50.0)["event"] == "ppe-violation")
         check("camera registry", parse_camera_sources("usb:0, demo")[0].kind == "usb")
         import numpy as np

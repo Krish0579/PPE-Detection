@@ -1,4 +1,5 @@
 """Image Analysis page — high-resolution static PPE inspection."""
+
 from __future__ import annotations
 
 import hashlib
@@ -124,7 +125,7 @@ def render(ctx: AppContext) -> None:
             )
 
         # Run pipeline inference with force_infer and render onto high-clarity canvas
-        target_mode = "8K"
+        target_mode = "1080p"
         image_digest = hashlib.sha256(target_img.tobytes()).hexdigest()
         img_fingerprint = f"{target_img.shape}_{image_digest}_{target_mode}_{inspect_precision}"
         cached_eval = st.session_state.get("_img_analysis_cache")
@@ -178,6 +179,7 @@ def render(ctx: AppContext) -> None:
                 import importlib
 
                 import src.video.renderer as _rmod
+
                 _rmod = importlib.reload(_rmod)
                 pipeline.renderer = _rmod.OverlayRenderer()
                 annotated_img = pipeline.renderer.render_8k_clarity_canvas(target_img, **render_kwargs)
@@ -214,11 +216,13 @@ def render(ctx: AppContext) -> None:
         render_metrics_grid(total_workers=i_tot, safe_workers=i_safe, violations=i_viol, safety_score=i_score)
 
         # Detail Inspection Tabs
-        tab_workers, tab_objects, tab_compliance = st.tabs([
-            "👥 Personnel Profile",
-            "🔍 Detected Objects Table",
-            "📊 Compliance Breakdown",
-        ])
+        tab_workers, tab_objects, tab_compliance = st.tabs(
+            [
+                "👥 Personnel Profile",
+                "🔍 Detected Objects Table",
+                "📊 Compliance Breakdown",
+            ]
+        )
 
         with tab_workers:
             if i_workers:
@@ -230,22 +234,28 @@ def render(ctx: AppContext) -> None:
 
         with tab_objects:
             if i_dets:
-                df_dets = pd.DataFrame([
-                    {
-                        "Class": format_label(d["label"]),
-                        "Category": d.get("category", "NEUTRAL"),
-                        "Confidence": f"{round(d.get('confidence', 0.0) * 100)}%",
-                        "Box (X1, Y1, X2, Y2)": f"({d['x1']}, {d['y1']}, {d['x2']}, {d['y2']})",
-                        "Status": "VIOLATION" if d.get("violation") else ("COMPLIANT" if d.get("compliance") else "NEUTRAL"),
-                    }
-                    for d in i_dets
-                ])
+                df_dets = pd.DataFrame(
+                    [
+                        {
+                            "Class": format_label(d["label"]),
+                            "Category": d.get("category", "NEUTRAL"),
+                            "Confidence": f"{round(d.get('confidence', 0.0) * 100)}%",
+                            "Box (X1, Y1, X2, Y2)": f"({d['x1']}, {d['y1']}, {d['x2']}, {d['y2']})",
+                            "Status": "VIOLATION"
+                            if d.get("violation")
+                            else ("COMPLIANT" if d.get("compliance") else "NEUTRAL"),
+                        }
+                        for d in i_dets
+                    ]
+                )
                 st.dataframe(df_dets, use_container_width=True, hide_index=True)
             else:
                 st.info("No objects detected above the confidence threshold.")
 
         with tab_compliance:
-            render_compliance_panel(i_counts, i_score, total_tracked=i_tot, workers=i_workers, required_ppe=STATE.required_ppe)
+            render_compliance_panel(
+                i_counts, i_score, total_tracked=i_tot, workers=i_workers, required_ppe=STATE.required_ppe
+            )
 
         # Export Actions
         col_exp1, col_exp2 = st.columns(2)

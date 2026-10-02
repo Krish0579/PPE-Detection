@@ -1,4 +1,5 @@
 """Executive Safety Operations Dashboard view."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -91,7 +92,9 @@ class DashboardView(QWidget):
         # Left Column: Recent Violations Table Card
         left_card = QFrame()
         left_card.setObjectName("panelCard")
-        left_card.setStyleSheet("background-color: #131d31; border: 1px solid #1e293b; border-radius: 10px; padding: 14px;")
+        left_card.setStyleSheet(
+            "background-color: #131d31; border: 1px solid #1e293b; border-radius: 10px; padding: 14px;"
+        )
         left_vbox = QVBoxLayout(left_card)
         left_vbox.setSpacing(10)
 
@@ -113,7 +116,9 @@ class DashboardView(QWidget):
         self.table_events.verticalHeader().setVisible(False)
         self.table_events.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_events.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table_events.setStyleSheet("QTableWidget { background-color: #0f172a; border: 1px solid #1e293b; border-radius: 6px; }")
+        self.table_events.setStyleSheet(
+            "QTableWidget { background-color: #0f172a; border: 1px solid #1e293b; border-radius: 6px; }"
+        )
         left_vbox.addWidget(self.table_events)
 
         content_layout.addWidget(left_card, 2)
@@ -121,7 +126,9 @@ class DashboardView(QWidget):
         # Right Column: System & Hardware Status
         right_card = QFrame()
         right_card.setObjectName("panelCard")
-        right_card.setStyleSheet("background-color: #131d31; border: 1px solid #1e293b; border-radius: 10px; padding: 14px;")
+        right_card.setStyleSheet(
+            "background-color: #131d31; border: 1px solid #1e293b; border-radius: 10px; padding: 14px;"
+        )
         right_vbox = QVBoxLayout(right_card)
         right_vbox.setSpacing(12)
 

@@ -1,4 +1,5 @@
 """Worker compliance and PPE gear checklist panel matching Streamlit design."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -128,7 +129,9 @@ class DetectionPanel(QFrame):
                 fg = "#047857" if status == "COMPLIANT" else ("#b91c1c" if status == "VIOLATION" else "#64748b")
                 border = "#a7f3d0" if status == "COMPLIANT" else ("#fecaca" if status == "VIOLATION" else "#e2e8f0")
                 pill = QLabel(f"{gear.title()[:4]}")
-                pill.setStyleSheet(f"background-color: {bg}; color: {fg}; border: 1px solid {border}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;")
+                pill.setStyleSheet(
+                    f"background-color: {bg}; color: {fg}; border: 1px solid {border}; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;"
+                )
                 pill.setToolTip(f"{gear.title()}: {status}")
                 gear_layout.addWidget(pill)
             gear_layout.addStretch()

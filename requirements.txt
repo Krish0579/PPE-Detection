@@ -3,6 +3,10 @@
 streamlit>=1.40,<2
 streamlit-webrtc>=0.62,<1
 ultralytics>=8.3,<9
+# CVE remediation floor — torch 2.2.x carries 20+ disclosed vulnerabilities
+# (see SECURITY.md § Dependency CVE policy). Never lower this bound.
+torch>=2.14,<3
+torchvision>=0.29
 opencv-python>=4.10,<4.12
 numpy>=1.26,<2
 pandas>=2.2,<4

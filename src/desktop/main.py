@@ -1,4 +1,5 @@
 """Main entry point for launching the SAFE SIGHT AI desktop application."""
+
 from __future__ import annotations
 
 import logging

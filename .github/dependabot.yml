@@ -1,0 +1,18 @@
+# Automated dependency updates — complements the blocking pip-audit CI gate.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Keep the ML stack moving together; torch/torchvision are strict pairs.
+      torch:
+        patterns: ["torch", "torchvision"]
+      streamlit:
+        patterns: ["streamlit*"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

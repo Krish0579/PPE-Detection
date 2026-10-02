@@ -5,6 +5,7 @@ Keeps the audit trail defensible: the database is copied with the SQLite
 mirrored into the ``snapshots`` index, and every run returns a machine-readable
 receipt dict.
 """
+
 from __future__ import annotations
 
 import logging

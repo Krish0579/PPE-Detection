@@ -1,4 +1,5 @@
 """Recorded video file playback and forensic review view matching original Streamlit design."""
+
 from __future__ import annotations
 
 import logging
@@ -64,7 +65,9 @@ class VideoReviewView(QWidget):
         lbl_title.setObjectName("pageTitle")
         title_vbox.addWidget(lbl_title)
 
-        lbl_sub = QLabel("High-throughput video file audit with frame scrubbing, PPE detection, and safety violation logging.")
+        lbl_sub = QLabel(
+            "High-throughput video file audit with frame scrubbing, PPE detection, and safety violation logging."
+        )
         lbl_sub.setObjectName("pageSubtitle")
         title_vbox.addWidget(lbl_sub)
 
@@ -76,7 +79,9 @@ class VideoReviewView(QWidget):
         pills_row.setSpacing(8)
 
         lbl_shift = QLabel("🗓️ TODAY, SHIFT 1")
-        lbl_shift.setStyleSheet("background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px;")
+        lbl_shift.setStyleSheet(
+            "background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px;"
+        )
         pills_row.addWidget(lbl_shift)
 
         self.badge_status = StatusBadge(status="live", text="● AI VISION ACTIVE")
@@ -134,7 +139,9 @@ class VideoReviewView(QWidget):
         tip_frame.setObjectName("tipBanner")
         tf_layout = QHBoxLayout(tip_frame)
         tf_layout.setContentsMargins(12, 8, 12, 8)
-        lbl_tip = QLabel("Upload an MP4, MOV, or AVI video clip to scrub through frames and execute automated PPE inspection.")
+        lbl_tip = QLabel(
+            "Upload an MP4, MOV, or AVI video clip to scrub through frames and execute automated PPE inspection."
+        )
         lbl_tip.setObjectName("tipBannerText")
         tf_layout.addWidget(lbl_tip)
         main_layout.addWidget(tip_frame)
@@ -149,7 +156,9 @@ class VideoReviewView(QWidget):
         l_layout.setContentsMargins(0, 0, 0, 0)
         l_layout.setSpacing(8)
 
-        self.display = VideoDisplayWidget(placeholder_text="No video loaded · Click 'Browse files' above to begin inspection")
+        self.display = VideoDisplayWidget(
+            placeholder_text="No video loaded · Click 'Browse files' above to begin inspection"
+        )
         l_layout.addWidget(self.display, 1)
 
         # Playback Controls Bar

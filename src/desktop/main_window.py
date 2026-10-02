@@ -1,4 +1,5 @@
 """Main application window for SAFE SIGHT AI desktop platform."""
+
 from __future__ import annotations
 
 import logging
@@ -268,11 +269,11 @@ class MainWindow(QMainWindow):
             parent=self,
         )
 
-        self.stack.addWidget(self.view_live)       # 0: Live Feed
-        self.stack.addWidget(self.view_video)      # 1: Video File
-        self.stack.addWidget(self.view_image)      # 2: Image Analysis
-        self.stack.addWidget(self.view_evidence)   # 3: Evidence Log
-        self.stack.addWidget(self.view_settings)   # 4: System Settings
+        self.stack.addWidget(self.view_live)  # 0: Live Feed
+        self.stack.addWidget(self.view_video)  # 1: Video File
+        self.stack.addWidget(self.view_image)  # 2: Image Analysis
+        self.stack.addWidget(self.view_evidence)  # 3: Evidence Log
+        self.stack.addWidget(self.view_settings)  # 4: System Settings
 
         content_layout.addWidget(self.stack, 1)
 
@@ -289,14 +290,18 @@ class MainWindow(QMainWindow):
         fb_layout = QHBoxLayout(footer_bar)
         fb_layout.setContentsMargins(0, 0, 0, 0)
 
-        lbl_foot_left = QLabel("<span style='color: #047857; font-weight: 800;'>SAFE SIGHT AI</span>  ·  <span style='color: #64748b; font-weight: 500;'>Shopfloor Vision & Safety Intelligence Platform</span>")
+        lbl_foot_left = QLabel(
+            "<span style='color: #047857; font-weight: 800;'>SAFE SIGHT AI</span>  ·  <span style='color: #64748b; font-weight: 500;'>Shopfloor Vision & Safety Intelligence Platform</span>"
+        )
         lbl_foot_left.setTextFormat(Qt.TextFormat.RichText)
         lbl_foot_left.setStyleSheet("font-size: 11px;")
         fb_layout.addWidget(lbl_foot_left)
 
         fb_layout.addStretch()
 
-        lbl_foot_right = QLabel("Model: <strong style='color: #111827;'>Custom PPE Neural Checkpoint</strong> · <span style='color: #047857; font-weight: 600;'>Production Certified</span>")
+        lbl_foot_right = QLabel(
+            "Model: <strong style='color: #111827;'>Custom PPE Neural Checkpoint</strong> · <span style='color: #047857; font-weight: 600;'>Production Certified</span>"
+        )
         lbl_foot_right.setTextFormat(Qt.TextFormat.RichText)
         lbl_foot_right.setStyleSheet("font-size: 11px; color: #64748b;")
         fb_layout.addWidget(lbl_foot_right)

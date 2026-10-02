@@ -1,4 +1,5 @@
 """QThread worker for inspecting and scrubbing pre-recorded video files."""
+
 from __future__ import annotations
 
 import logging

@@ -1,4 +1,5 @@
 """Tests for the §8 release helper (no files touched outside tmp dirs)."""
+
 from __future__ import annotations
 
 import sys

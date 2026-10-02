@@ -3,6 +3,7 @@
 The Streamlit UI is a trust boundary: browser uploads and editable model paths
 must be checked before OpenCV or PyTorch attempts to process them.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -109,7 +110,9 @@ def persist_upload_bytes(
     destination = destination_dir / f"{prefix}-{uuid.uuid4().hex}{suffix}"
     temp_path: Path | None = None
     try:
-        with tempfile.NamedTemporaryFile(dir=destination_dir, prefix=".upload-", suffix=suffix, delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            dir=destination_dir, prefix=".upload-", suffix=suffix, delete=False
+        ) as temp_file:
             temp_file.write(content)
             temp_file.flush()
             os.fsync(temp_file.fileno())

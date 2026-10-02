@@ -1,4 +1,5 @@
 """View modules for SAFE SIGHT AI desktop tabs."""
+
 from src.desktop.views.dashboard_view import DashboardView
 from src.desktop.views.evidence_view import EvidenceView
 from src.desktop.views.image_view import ImageView

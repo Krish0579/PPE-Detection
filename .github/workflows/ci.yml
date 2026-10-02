@@ -9,12 +9,17 @@ on:
 jobs:
   lint-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # requires-python = ">=3.10,<3.13" — CI proves it on every push.
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
           cache: pip
 
       - name: Install dependencies
@@ -23,13 +28,37 @@ jobs:
       - name: Ruff lint
         run: ruff check .
 
-      - name: Pytest
-        run: pytest tests/ -q
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Pytest (with coverage floor)
+        run: pytest tests/ -q --cov=src --cov-report=term-missing
         env:
           YOLO_CONFIG_DIR: ${{ github.workspace }}/.cache/ultralytics
 
       - name: Production readiness gate (offline)
         run: python scripts/prod_readiness_check.py
+
+  dep-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install locked dependencies
+        run: pip install -r requirements-lock.txt
+
+      # Blocking dependency CVE gate. If a flagged CVE has no fix release yet,
+      # waive precisely with justification, e.g.: pip-audit --ignore-vuln PYSEC-XXXX
+      # and record the waiver in SECURITY.md. Never waive silently.
+      - name: Dependency CVE audit
+        run: |
+          pip install pip-audit
+          pip-audit --progress-spinner=off
 
   docker-build:
     runs-on: ubuntu-latest

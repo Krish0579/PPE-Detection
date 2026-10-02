@@ -3,6 +3,7 @@
 Pure pytest module: model-dependent tests skip cleanly when weights are absent,
 and failures are reported through pytest assertions instead of a custom runner.
 """
+
 from __future__ import annotations
 
 import os
@@ -29,6 +30,7 @@ def _model_path_or_skip() -> str:
 # =============================
 # 1. APPLICATION STARTUP
 # =============================
+
 
 def test_all_imports():
     from src.config import settings
@@ -75,6 +77,7 @@ def test_model_init():
 # 2. MODEL LOADING
 # =============================
 
+
 def test_valid_model():
     from src.core.model_manager import load_model
 
@@ -88,9 +91,7 @@ def test_missing_model():
     with pytest.raises(Exception) as exc_info:
         load_model("/nonexistent/fake_model.pt", device="cpu")
     message = str(exc_info.value).lower()
-    assert "not found" in message or "no such" in message or isinstance(
-        exc_info.value, FileNotFoundError
-    )
+    assert "not found" in message or "no such" in message or isinstance(exc_info.value, FileNotFoundError)
 
 
 def test_invalid_model_path():
@@ -107,10 +108,10 @@ def test_cpu_mode():
     assert model is not None
 
 
-
 # =============================
 # 3. DETECTION PIPELINE
 # =============================
+
 
 def test_empty_frame():
     from src.core.model_manager import load_model, resolve_model_path
@@ -152,7 +153,16 @@ def test_person_only():
     from src.core.ppe_associator import associate_ppe_to_workers
 
     dets = [
-        {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.9, "violation": False, "display_label": "Person"},
+        {
+            "label": "person",
+            "x1": 100,
+            "y1": 100,
+            "x2": 300,
+            "y2": 600,
+            "confidence": 0.9,
+            "violation": False,
+            "display_label": "Person",
+        },
     ]
     workers = associate_ppe_to_workers(dets)
     assert len(workers) == 1
@@ -165,8 +175,26 @@ def test_person_helmet():
     from src.core.ppe_associator import associate_ppe_to_workers
 
     dets = [
-        {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.9, "violation": False, "display_label": "Person"},
-        {"label": "helmet", "x1": 150, "y1": 110, "x2": 250, "y2": 200, "confidence": 0.88, "violation": False, "display_label": "Helmet"},
+        {
+            "label": "person",
+            "x1": 100,
+            "y1": 100,
+            "x2": 300,
+            "y2": 600,
+            "confidence": 0.9,
+            "violation": False,
+            "display_label": "Person",
+        },
+        {
+            "label": "helmet",
+            "x1": 150,
+            "y1": 110,
+            "x2": 250,
+            "y2": 200,
+            "confidence": 0.88,
+            "violation": False,
+            "display_label": "Helmet",
+        },
     ]
     workers = associate_ppe_to_workers(dets)
     assert len(workers) == 1
@@ -178,8 +206,26 @@ def test_person_vest():
     from src.core.ppe_associator import associate_ppe_to_workers
 
     dets = [
-        {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.9, "violation": False, "display_label": "Person"},
-        {"label": "vest", "x1": 120, "y1": 250, "x2": 280, "y2": 450, "confidence": 0.85, "violation": False, "display_label": "Vest"},
+        {
+            "label": "person",
+            "x1": 100,
+            "y1": 100,
+            "x2": 300,
+            "y2": 600,
+            "confidence": 0.9,
+            "violation": False,
+            "display_label": "Person",
+        },
+        {
+            "label": "vest",
+            "x1": 120,
+            "y1": 250,
+            "x2": 280,
+            "y2": 450,
+            "confidence": 0.85,
+            "violation": False,
+            "display_label": "Vest",
+        },
     ]
     workers = associate_ppe_to_workers(dets)
     assert len(workers) == 1
@@ -190,9 +236,36 @@ def test_person_helmet_vest():
     from src.core.ppe_associator import associate_ppe_to_workers
 
     dets = [
-        {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.9, "violation": False, "display_label": "Person"},
-        {"label": "helmet", "x1": 150, "y1": 110, "x2": 250, "y2": 200, "confidence": 0.88, "violation": False, "display_label": "Helmet"},
-        {"label": "vest", "x1": 120, "y1": 250, "x2": 280, "y2": 450, "confidence": 0.85, "violation": False, "display_label": "Vest"},
+        {
+            "label": "person",
+            "x1": 100,
+            "y1": 100,
+            "x2": 300,
+            "y2": 600,
+            "confidence": 0.9,
+            "violation": False,
+            "display_label": "Person",
+        },
+        {
+            "label": "helmet",
+            "x1": 150,
+            "y1": 110,
+            "x2": 250,
+            "y2": 200,
+            "confidence": 0.88,
+            "violation": False,
+            "display_label": "Helmet",
+        },
+        {
+            "label": "vest",
+            "x1": 120,
+            "y1": 250,
+            "x2": 280,
+            "y2": 450,
+            "confidence": 0.85,
+            "violation": False,
+            "display_label": "Vest",
+        },
     ]
     workers = associate_ppe_to_workers(dets)
     assert len(workers) == 1
@@ -207,8 +280,26 @@ def test_multiple_workers():
     from src.core.ppe_associator import associate_ppe_to_workers
 
     dets = [
-        {"label": "person", "x1": 50, "y1": 100, "x2": 250, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-        {"label": "person", "x1": 400, "y1": 100, "x2": 600, "y2": 600, "confidence": 0.94, "violation": False, "display_label": "Person"},
+        {
+            "label": "person",
+            "x1": 50,
+            "y1": 100,
+            "x2": 250,
+            "y2": 600,
+            "confidence": 0.95,
+            "violation": False,
+            "display_label": "Person",
+        },
+        {
+            "label": "person",
+            "x1": 400,
+            "y1": 100,
+            "x2": 600,
+            "y2": 600,
+            "confidence": 0.94,
+            "violation": False,
+            "display_label": "Person",
+        },
     ]
     workers = associate_ppe_to_workers(dets)
     assert len(workers) == 2
@@ -218,10 +309,46 @@ def test_multiple_ppe_objects():
     from src.core.ppe_associator import associate_ppe_to_workers
 
     dets = [
-        {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-        {"label": "helmet", "x1": 150, "y1": 110, "x2": 250, "y2": 200, "confidence": 0.91, "violation": False, "display_label": "Helmet"},
-        {"label": "vest", "x1": 120, "y1": 250, "x2": 280, "y2": 450, "confidence": 0.89, "violation": False, "display_label": "Vest"},
-        {"label": "boots", "x1": 130, "y1": 500, "x2": 270, "y2": 590, "confidence": 0.87, "violation": False, "display_label": "Boots"},
+        {
+            "label": "person",
+            "x1": 100,
+            "y1": 100,
+            "x2": 300,
+            "y2": 600,
+            "confidence": 0.95,
+            "violation": False,
+            "display_label": "Person",
+        },
+        {
+            "label": "helmet",
+            "x1": 150,
+            "y1": 110,
+            "x2": 250,
+            "y2": 200,
+            "confidence": 0.91,
+            "violation": False,
+            "display_label": "Helmet",
+        },
+        {
+            "label": "vest",
+            "x1": 120,
+            "y1": 250,
+            "x2": 280,
+            "y2": 450,
+            "confidence": 0.89,
+            "violation": False,
+            "display_label": "Vest",
+        },
+        {
+            "label": "boots",
+            "x1": 130,
+            "y1": 500,
+            "x2": 270,
+            "y2": 590,
+            "confidence": 0.87,
+            "violation": False,
+            "display_label": "Boots",
+        },
     ]
     workers = associate_ppe_to_workers(dets)
     assert len(workers) == 1
@@ -236,8 +363,26 @@ def test_low_confidence_detections():
     from src.core.ppe_associator import associate_ppe_to_workers
 
     dets = [
-        {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.15, "violation": False, "display_label": "Person"},
-        {"label": "helmet", "x1": 150, "y1": 110, "x2": 250, "y2": 200, "confidence": 0.12, "violation": False, "display_label": "Helmet"},
+        {
+            "label": "person",
+            "x1": 100,
+            "y1": 100,
+            "x2": 300,
+            "y2": 600,
+            "confidence": 0.15,
+            "violation": False,
+            "display_label": "Person",
+        },
+        {
+            "label": "helmet",
+            "x1": 150,
+            "y1": 110,
+            "x2": 250,
+            "y2": 200,
+            "confidence": 0.12,
+            "violation": False,
+            "display_label": "Helmet",
+        },
     ]
     workers = associate_ppe_to_workers(dets)
     assert len(workers) == 1
@@ -247,18 +392,73 @@ def test_low_confidence_detections():
 # 4. MULTI-WORKER TESTING
 # =============================
 
+
 def test_multi_worker_mixed_compliance():
     from src.core.ppe_associator import associate_ppe_to_workers
 
     dets = [
         # Worker A: Helmet ✓, Vest ✓
-        {"label": "person", "x1": 50, "y1": 100, "x2": 250, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-        {"label": "helmet", "x1": 100, "y1": 110, "x2": 200, "y2": 190, "confidence": 0.92, "violation": False, "display_label": "Helmet"},
-        {"label": "vest", "x1": 80, "y1": 220, "x2": 220, "y2": 450, "confidence": 0.89, "violation": False, "display_label": "Vest"},
+        {
+            "label": "person",
+            "x1": 50,
+            "y1": 100,
+            "x2": 250,
+            "y2": 600,
+            "confidence": 0.95,
+            "violation": False,
+            "display_label": "Person",
+        },
+        {
+            "label": "helmet",
+            "x1": 100,
+            "y1": 110,
+            "x2": 200,
+            "y2": 190,
+            "confidence": 0.92,
+            "violation": False,
+            "display_label": "Helmet",
+        },
+        {
+            "label": "vest",
+            "x1": 80,
+            "y1": 220,
+            "x2": 220,
+            "y2": 450,
+            "confidence": 0.89,
+            "violation": False,
+            "display_label": "Vest",
+        },
         # Worker B: Helmet ✕, Vest ✓
-        {"label": "person", "x1": 400, "y1": 100, "x2": 600, "y2": 600, "confidence": 0.94, "violation": False, "display_label": "Person"},
-        {"label": "no-helmet", "x1": 450, "y1": 110, "x2": 550, "y2": 190, "confidence": 0.90, "violation": True, "display_label": "No Helmet"},
-        {"label": "vest", "x1": 430, "y1": 220, "x2": 570, "y2": 450, "confidence": 0.88, "violation": False, "display_label": "Vest"},
+        {
+            "label": "person",
+            "x1": 400,
+            "y1": 100,
+            "x2": 600,
+            "y2": 600,
+            "confidence": 0.94,
+            "violation": False,
+            "display_label": "Person",
+        },
+        {
+            "label": "no-helmet",
+            "x1": 450,
+            "y1": 110,
+            "x2": 550,
+            "y2": 190,
+            "confidence": 0.90,
+            "violation": True,
+            "display_label": "No Helmet",
+        },
+        {
+            "label": "vest",
+            "x1": 430,
+            "y1": 220,
+            "x2": 570,
+            "y2": 450,
+            "confidence": 0.88,
+            "violation": False,
+            "display_label": "Vest",
+        },
     ]
     workers = associate_ppe_to_workers(dets)
     assert len(workers) == 2, f"Expected 2 workers, got {len(workers)}"
@@ -280,10 +480,37 @@ def test_ppe_no_double_assignment():
 
     dets = [
         # Two workers very close together
-        {"label": "person", "x1": 100, "y1": 100, "x2": 250, "y2": 500, "confidence": 0.95, "violation": False, "display_label": "Person"},
-        {"label": "person", "x1": 260, "y1": 100, "x2": 410, "y2": 500, "confidence": 0.94, "violation": False, "display_label": "Person"},
+        {
+            "label": "person",
+            "x1": 100,
+            "y1": 100,
+            "x2": 250,
+            "y2": 500,
+            "confidence": 0.95,
+            "violation": False,
+            "display_label": "Person",
+        },
+        {
+            "label": "person",
+            "x1": 260,
+            "y1": 100,
+            "x2": 410,
+            "y2": 500,
+            "confidence": 0.94,
+            "violation": False,
+            "display_label": "Person",
+        },
         # One helmet between them
-        {"label": "helmet", "x1": 150, "y1": 105, "x2": 220, "y2": 180, "confidence": 0.91, "violation": False, "display_label": "Helmet"},
+        {
+            "label": "helmet",
+            "x1": 150,
+            "y1": 105,
+            "x2": 220,
+            "y2": 180,
+            "confidence": 0.91,
+            "violation": False,
+            "display_label": "Helmet",
+        },
     ]
     workers = associate_ppe_to_workers(dets)
     assert len(workers) == 2
@@ -291,10 +518,10 @@ def test_ppe_no_double_assignment():
     assert helmeted <= 1, f"Helmet assigned to {helmeted} workers (should be ≤1)"
 
 
-
 # =============================
 # 5. ALERT ENGINE
 # =============================
+
 
 def test_alert_deduplication():
     """Persistent violations must not create duplicate incidents each frame."""
@@ -337,7 +564,9 @@ def test_alert_clear_and_cooldown():
 
     # Clear violation (3 clean frames)
     for _ in range(3):
-        state.publish(counts={"helmet": 1}, detections=clean, workers=[], fps=30.0, inference_ms=10.0, violations_count=0)
+        state.publish(
+            counts={"helmet": 1}, detections=clean, workers=[], fps=30.0, inference_ms=10.0, violations_count=0
+        )
     assert not state.violating
 
     events = state.get_events()
@@ -355,6 +584,7 @@ def test_alert_clear_and_cooldown():
 # =============================
 # 6. THEME SYSTEM
 # =============================
+
 
 def test_css_light_generates():
     from src.ui.theme import get_safesight_css
@@ -377,15 +607,26 @@ def test_css_has_semantic_tokens():
     from src.ui.theme import get_safesight_css
 
     css = get_safesight_css("light")
-    required_vars = ["--bg", "--panel", "--line", "--green", "--red", "--amber", "--blue", "--heading", "--secondary", "--muted"]
+    required_vars = [
+        "--bg",
+        "--panel",
+        "--line",
+        "--green",
+        "--red",
+        "--amber",
+        "--blue",
+        "--heading",
+        "--secondary",
+        "--muted",
+    ]
     for v in required_vars:
         assert v in css, f"Missing CSS variable: {v}"
-
 
 
 # =============================
 # 7. EVIDENCE & TEMP FILES
 # =============================
+
 
 def test_evidence_pruning(tmp_path):
     from src.storage.evidence import EvidenceManager
@@ -411,14 +652,19 @@ def test_demo_feed_excludes_viols():
 # 8. PERFORMANCE
 # =============================
 
+
 def test_telemetry_bounded():
     from src.video.pipeline import TelemetryState
 
     state = TelemetryState()
     for _ in range(1000):
         state.publish(
-            counts={"person": 1}, detections=[{"label": "person", "violation": False}],
-            workers=[], fps=30.0, inference_ms=10.0, violations_count=0,
+            counts={"person": 1},
+            detections=[{"label": "person", "violation": False}],
+            workers=[],
+            fps=30.0,
+            inference_ms=10.0,
+            violations_count=0,
         )
     snap = state.snapshot_ui()
     assert snap["total_frames"] == 1000
@@ -430,6 +676,7 @@ def test_telemetry_bounded():
 # =============================
 # 9. RENDERER
 # =============================
+
 
 def test_renderer_empty_workers():
     from src.video.renderer import OverlayRenderer

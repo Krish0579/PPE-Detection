@@ -1,4 +1,5 @@
 """Tests for Certified Audit PDF report generation and UI integration."""
+
 import io
 import time
 from unittest.mock import MagicMock, patch
@@ -151,8 +152,7 @@ def test_render_reports_view_offers_pdf_download(tmp_path):
     col1_mock = MagicMock()
     col2_mock = MagicMock()
 
-    with patch("streamlit.columns", return_value=(col1_mock, col2_mock)), \
-         patch("src.ui.components.render_html"):
+    with patch("streamlit.columns", return_value=(col1_mock, col2_mock)), patch("src.ui.components.render_html"):
         render_reports_view(
             evidence_mgr=mgr,
             total_frames=50,
@@ -248,4 +248,3 @@ def test_generate_audit_pdf_with_snapshot_thumbnail(tmp_path):
     assert isinstance(pdf_bytes, bytes)
     assert pdf_bytes.startswith(b"%PDF-")
     assert len(pdf_bytes) > 1000
-

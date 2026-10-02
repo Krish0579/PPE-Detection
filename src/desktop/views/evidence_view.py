@@ -1,4 +1,5 @@
 """Forensic safety evidence log viewer matching Screenshot 4."""
+
 from __future__ import annotations
 
 import logging
@@ -68,7 +69,9 @@ class SnapshotDialog(QDialog):
         lbl_sev = QLabel(f" {sev} ")
         sev_color = "#b91c1c" if sev == "CRITICAL" else "#d97706"
         sev_bg = "#fef2f2" if sev == "CRITICAL" else "#fcf4e5"
-        lbl_sev.setStyleSheet(f"background-color: {sev_bg}; color: {sev_color}; border: 1px solid {sev_color}; border-radius: 4px; font-weight: 800; padding: 4px 10px; font-size: 11px;")
+        lbl_sev.setStyleSheet(
+            f"background-color: {sev_bg}; color: {sev_color}; border: 1px solid {sev_color}; border-radius: 4px; font-weight: 800; padding: 4px 10px; font-size: 11px;"
+        )
         header.addWidget(lbl_sev)
 
         layout.addLayout(header)
@@ -86,7 +89,9 @@ class SnapshotDialog(QDialog):
         if snap_path and Path(snap_path).exists():
             pix = QPixmap(str(snap_path))
         if pix and not pix.isNull():
-            self.lbl_image.setPixmap(pix.scaled(640, 360, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            self.lbl_image.setPixmap(
+                pix.scaled(640, 360, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            )
         else:
             self.lbl_image.setText("No snapshot frame archived for this incident")
             self.lbl_image.setStyleSheet("color: #94a3b8; font-size: 13px; font-style: italic;")
@@ -144,7 +149,9 @@ class EvidenceView(QWidget):
         lbl_title.setObjectName("pageTitle")
         title_vbox.addWidget(lbl_title)
 
-        lbl_sub = QLabel("Permanent SQLite audit trail, violation snapshots, incident resolution, and certified compliance exports.")
+        lbl_sub = QLabel(
+            "Permanent SQLite audit trail, violation snapshots, incident resolution, and certified compliance exports."
+        )
         lbl_sub.setObjectName("pageSubtitle")
         title_vbox.addWidget(lbl_sub)
 
@@ -156,7 +163,9 @@ class EvidenceView(QWidget):
         pills_row.setSpacing(8)
 
         lbl_shift = QLabel("🗓️ TODAY, SHIFT 1")
-        lbl_shift.setStyleSheet("background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px;")
+        lbl_shift.setStyleSheet(
+            "background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px;"
+        )
         pills_row.addWidget(lbl_shift)
 
         self.badge_status = StatusBadge(status="live", text="● AI VISION ACTIVE")
@@ -172,7 +181,9 @@ class EvidenceView(QWidget):
         self.card_total_p = MetricCard("TOTAL PERSONNEL", "0", "Monitored workers", color="blue")
         self.card_active_v = MetricCard("ACTIVE VIOLATIONS", "0", "Action required", color="red")
         self.card_resolved = MetricCard("RESOLVED INCIDENTS", "0", "Cleared / Acknowledged", color="green")
-        self.card_primary = MetricCard("PRIMARY VIOLATION", "None (Fully Compliant)", "Highest frequency check", color="amber")
+        self.card_primary = MetricCard(
+            "PRIMARY VIOLATION", "None (Fully Compliant)", "Highest frequency check", color="amber"
+        )
 
         metrics_layout.addWidget(self.card_total_p)
         metrics_layout.addWidget(self.card_active_v)
@@ -229,9 +240,9 @@ class EvidenceView(QWidget):
 
         # Table
         self.table = QTableWidget(0, 7)
-        self.table.setHorizontalHeaderLabels([
-            "Event ID", "Time", "Person", "Violation Type", "Severity", "Status", "Evidence Snapshot"
-        ])
+        self.table.setHorizontalHeaderLabels(
+            ["Event ID", "Time", "Person", "Violation Type", "Severity", "Status", "Evidence Snapshot"]
+        )
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)

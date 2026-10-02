@@ -1,4 +1,5 @@
 """Status Badge widget matching original Streamlit design."""
+
 from __future__ import annotations
 
 from PySide6.QtWidgets import QLabel
@@ -23,7 +24,9 @@ class StatusBadge(QLabel):
         self.set_status(status, text)
 
     def set_status(self, status: str, text: str | None = None) -> None:
-        bg, fg, border, default_text = self.STYLES.get(status.lower(), ("#f1f5f9", "#475569", "#e2e8f0", status.upper()))
+        bg, fg, border, default_text = self.STYLES.get(
+            status.lower(), ("#f1f5f9", "#475569", "#e2e8f0", status.upper())
+        )
         display_text = text if text is not None else default_text
         self.setText(display_text)
         self.setStyleSheet(f"""

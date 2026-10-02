@@ -1,4 +1,5 @@
 """Smoke coverage for the Streamlit application shell."""
+
 from __future__ import annotations
 
 import unittest

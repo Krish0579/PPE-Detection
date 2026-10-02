@@ -1,4 +1,4 @@
-.PHONY: install dev test lint run docker prod-check backup
+.PHONY: install dev test coverage lint format format-check audit run docker prod-check backup
 
 install:
 	pip install -r requirements-lock.txt
@@ -9,8 +9,20 @@ dev:
 test:
 	python3 -m pytest tests/ -q
 
+coverage:
+	python3 -m pytest tests/ -q --cov=src --cov-report=term-missing
+
 lint:
 	ruff check .
+
+format:
+	ruff format .
+
+format-check:
+	ruff format --check .
+
+audit:
+	pip-audit --progress-spinner=off
 
 run:
 	python3 -m streamlit run app.py

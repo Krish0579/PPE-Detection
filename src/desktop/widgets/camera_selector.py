@@ -1,4 +1,5 @@
 """Hardware camera device selector with auto-enumeration."""
+
 from __future__ import annotations
 
 import cv2

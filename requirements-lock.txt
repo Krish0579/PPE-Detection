@@ -1,5 +1,9 @@
 # Deployment lockfile — exact pins validated on the target environment.
 # Regenerate with: .venv/bin/pip freeze | grep -viE "^(pytest|ruff|iniconfig|pluggy|streamlit-folium|folium|branca)=="
+# SECURITY: torch/torchvision pinned to 2.14.0/0.29.0 — remediates 20+ disclosed
+# CVEs in 2.2.2 (PYSEC-2024-259, PYSEC-2025-41, PYSEC-2025-189..209,
+# PYSEC-2026-1970, PYSEC-2026-2286 ...). Do not downgrade. Blocked dep-audit gate
+# in CI enforces this on every push; see SECURITY.md § Dependency CVE policy.
 aioice==0.10.2
 aiortc==1.15.0
 altair==6.2.2
@@ -79,8 +83,8 @@ streamlit==1.62.0
 streamlit-webrtc==0.77.0
 sympy==1.14.0
 toml==0.10.2
-torch==2.2.2
-torchvision==0.17.2
+torch==2.14.0
+torchvision==0.29.0
 truststore==0.10.4
 typing-inspection==0.4.4
 typing_extensions==4.16.0

@@ -3,6 +3,7 @@
 Handles device selection (MPS, CUDA, CPU), precision tuning (FP16), and cached
 model warm-up passes.
 """
+
 from __future__ import annotations
 
 import os
@@ -43,6 +44,7 @@ def device_label(dev: str) -> str:
     if dev.startswith("cuda"):
         try:
             import torch
+
             idx = int(dev.split(":")[1]) if ":" in dev else 0
             name = torch.cuda.get_device_name(idx)
             return f"GPU · {name}"
@@ -60,13 +62,15 @@ def resolve_model_path(requested_path: str | None = None) -> tuple[str, bool]:
         candidates.append(requested_path)
     if MODEL_PATH:
         candidates.append(MODEL_PATH)
-    candidates.extend([
-        str(PROJECT_ROOT / "models" / "best.pt"),
-        "models/best.pt",
-        "runs/detect/train5/weights/best.pt",
-        str(PROJECT_ROOT / "runs" / "detect" / "train5" / "weights" / "best.pt"),
-        str(PROJECT_ROOT / "models" / "final.pt"),
-    ])
+    candidates.extend(
+        [
+            str(PROJECT_ROOT / "models" / "best.pt"),
+            "models/best.pt",
+            "runs/detect/train5/weights/best.pt",
+            str(PROJECT_ROOT / "runs" / "detect" / "train5" / "weights" / "best.pt"),
+            str(PROJECT_ROOT / "models" / "final.pt"),
+        ]
+    )
 
     for c in candidates:
         if c and os.path.isfile(c):

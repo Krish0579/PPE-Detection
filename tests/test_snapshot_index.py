@@ -1,4 +1,5 @@
 """B4 regression tests — DB-backed snapshot index (query/filter/delete/backfill)."""
+
 import numpy as np
 import pytest
 

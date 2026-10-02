@@ -1,4 +1,5 @@
 """Static image inspection and single-frame audit view matching Screenshot 3."""
+
 from __future__ import annotations
 
 import logging
@@ -75,7 +76,9 @@ class ImageView(QWidget):
         pills_row.setSpacing(8)
 
         lbl_shift = QLabel("🗓️ TODAY, SHIFT 1")
-        lbl_shift.setStyleSheet("background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px;")
+        lbl_shift.setStyleSheet(
+            "background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px;"
+        )
         pills_row.addWidget(lbl_shift)
 
         self.badge_status = StatusBadge(status="live", text="● AI VISION ACTIVE")

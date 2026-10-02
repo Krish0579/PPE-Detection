@@ -1,4 +1,5 @@
 """Evidence Log page — SQLite audit trail, snapshot gallery, and exports."""
+
 from __future__ import annotations
 
 import re
@@ -45,6 +46,7 @@ def render(ctx: AppContext) -> None:
     all_missing = [m for p in person_incidents for m in p["missing_ppe"]]
     if all_missing:
         from collections import Counter
+
         top_missing = Counter(all_missing).most_common(1)[0][0]
     else:
         top_missing = "None (Fully Compliant)"
@@ -93,24 +95,34 @@ def render(ctx: AppContext) -> None:
         )
 
     # Tabbed interface: personnel incidents, snapshot gallery, and exports
-    tab_incidents, tab_gallery, tab_export = st.tabs([
-        "⚠️ Incident Management",
-        "📸 Snapshot Archive",
-        "📦 Audit exports",
-    ])
+    tab_incidents, tab_gallery, tab_export = st.tabs(
+        [
+            "⚠️ Incident Management",
+            "📸 Snapshot Archive",
+            "📦 Audit exports",
+        ]
+    )
 
     with tab_incidents:
+
         def handle_incident_action(person_name: str, new_status: str):
             m = re.search(r"\d+", person_name)
             w_id = int(m.group(0)) if m else None
             recent_events = EVIDENCE_MGR.query_events(limit=100)
             for ev in recent_events:
-                if (w_id is not None and ev.get("person_id") == w_id) or person_name.lower() in str(ev.get("violation_type", "")).lower():
+                if (w_id is not None and ev.get("person_id") == w_id) or person_name.lower() in str(
+                    ev.get("violation_type", "")
+                ).lower():
                     EVIDENCE_MGR.update_event_status(ev["id"], new_status)
 
         _c_head, c_reset = st.columns([3, 1])
         with c_reset:
-            if st.button("🧹 Clear Session Log", help="Reset live personnel alert history and re-initialize person tracker", key="btn_reset_personnel_log", use_container_width=True):
+            if st.button(
+                "🧹 Clear Session Log",
+                help="Reset live personnel alert history and re-initialize person tracker",
+                key="btn_reset_personnel_log",
+                use_container_width=True,
+            ):
                 if hasattr(STATE, "clear_events"):
                     STATE.clear_events()
                 st.session_state["resolved_person_alerts"] = set()
@@ -149,16 +161,18 @@ def render(ctx: AppContext) -> None:
                 dur_sec = max(0, int(p["last_seen"] - p["first_seen"]))
                 dur_disp = f"{dur_sec // 60}m {dur_sec % 60}s" if dur_sec > 60 else f"{dur_sec}s"
 
-                rows.append({
-                    "Personnel": p_name,
-                    "Missing Required PPE": missing_str,
-                    "Equipped Gear": compliant_str,
-                    "First Observed": first_dt,
-                    "Last Observed": last_dt,
-                    "Duration": dur_disp,
-                    "Location": p["zone"],
-                    "Status": status,
-                })
+                rows.append(
+                    {
+                        "Personnel": p_name,
+                        "Missing Required PPE": missing_str,
+                        "Equipped Gear": compliant_str,
+                        "First Observed": first_dt,
+                        "Last Observed": last_dt,
+                        "Duration": dur_disp,
+                        "Location": p["zone"],
+                        "Status": status,
+                    }
+                )
 
             if rows:
                 st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
@@ -200,9 +214,7 @@ def render(ctx: AppContext) -> None:
         day_q = None if selected_date == "All dates" else selected_date
         label_q = None if selected_label == "All violation types" else selected_label
         total = EVIDENCE_MGR.count_snapshots(day=day_q, label=label_q)
-        visible_snaps = EVIDENCE_MGR.query_snapshots(
-            limit=st.session_state.gallery_visible, day=day_q, label=label_q
-        )
+        visible_snaps = EVIDENCE_MGR.query_snapshots(limit=st.session_state.gallery_visible, day=day_q, label=label_q)
 
         if visible_snaps:
             shown = len(visible_snaps)
@@ -305,9 +317,7 @@ def render(ctx: AppContext) -> None:
                     st.bar_chart(ev_df.groupby("hour").size())
                 with an_type:
                     st.caption("Top violation types")
-                    top_types = (
-                        ev_df.groupby("violation_type").size().sort_values(ascending=False).head(8)
-                    )
+                    top_types = ev_df.groupby("violation_type").size().sort_values(ascending=False).head(8)
                     st.bar_chart(top_types)
                 st.caption(f"Based on the {len(ev_df)} most recent audit events (retention-capped).")
             else:
@@ -338,8 +348,7 @@ def render(ctx: AppContext) -> None:
             )
             if confirm_zip:
                 recent_records = [
-                    {"datetime": s.name, "ts": s.stat().st_mtime, "jpeg": s.read_bytes()}
-                    for s in recent_files
+                    {"datetime": s.name, "ts": s.stat().st_mtime, "jpeg": s.read_bytes()} for s in recent_files
                 ]
                 zip_bytes = EVIDENCE_MGR.create_zip_archive(recent_records)
                 st.download_button(
@@ -354,28 +363,27 @@ def render(ctx: AppContext) -> None:
 
         st.markdown("---")
         st.markdown("#### 📥 Shift Audit & Executive Reports")
-        
+
         col_audit, col_print = st.columns(2, gap="medium")
-        
+
         with col_audit:
             st.markdown("**1-Click Shift Audit (CSV)**")
             st.caption("OSHA/ISO 45001 compliant breakdown by worker, gear type, and timestamp")
-            
+
             # Get available sessions
             sessions = EVIDENCE_MGR.query_sessions(limit=10)
             session_options = ["Current Session (All Events)"] + [
                 f"Session #{s['id']} — {datetime.fromtimestamp(s['start_time']).strftime('%Y-%m-%d %H:%M')} ({s['total_frames']} frames, {s['total_violations']} violations)"
                 for s in sessions
             ]
-            selected_session = st.selectbox(
-                "Select Session",
-                session_options,
-                index=0,
-                key="audit_session_select"
+            selected_session = st.selectbox("Select Session", session_options, index=0, key="audit_session_select")
+
+            session_id = (
+                None
+                if selected_session == "Current Session (All Events)"
+                else int(selected_session.split("#")[1].split(" ")[0])
             )
-            
-            session_id = None if selected_session == "Current Session (All Events)" else int(selected_session.split("#")[1].split(" ")[0])
-            
+
             csv_content = EVIDENCE_MGR.export_shift_audit_csv(session_id=session_id)
             st.download_button(
                 label="📥 Download Shift Audit (.CSV)",
@@ -383,48 +391,59 @@ def render(ctx: AppContext) -> None:
                 file_name=f"safesight_shift_audit_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
                 use_container_width=True,
-                key=f"dl_shift_audit_csv_{session_id}"
+                key=f"dl_shift_audit_csv_{session_id}",
             )
-        
+
         with col_print:
             st.markdown("**Print-Ready Executive Safety Report**")
             st.caption("Formatted HTML certificate for window.print() — compliant with ISO 45001 audits")
-            
+
             # Prepare data for certificate
             workers_detail = []
             for w in snap_data["workers"]:
-                workers_detail.append({
-                    "name": f"Worker #{w.worker_id:02d}",
-                    "worker_id": w.worker_id,
-                    "zone": w.zone,
-                    "helmet": w.helmet_status,
-                    "vest": w.vest_status,
-                    "gloves": w.gloves_status,
-                    "boots": w.boots_status,
-                    "goggles": w.goggles_status,
-                    "status": "COMPLIANT" if w.is_compliant else "VIOLATION",
-                    "is_compliant": w.is_compliant,
-                    "missing_ppe": w.violations,
-                    "violations": w.violations,
-                })
-            
+                workers_detail.append(
+                    {
+                        "name": f"Worker #{w.worker_id:02d}",
+                        "worker_id": w.worker_id,
+                        "zone": w.zone,
+                        "helmet": w.helmet_status,
+                        "vest": w.vest_status,
+                        "gloves": w.gloves_status,
+                        "boots": w.boots_status,
+                        "goggles": w.goggles_status,
+                        "status": "COMPLIANT" if w.is_compliant else "VIOLATION",
+                        "is_compliant": w.is_compliant,
+                        "missing_ppe": w.violations,
+                        "violations": w.violations,
+                    }
+                )
+
             cert_data = {
                 "session_id": sessions[0]["id"] if sessions else "N/A",
-                "generated_at": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "model_name": model_name,
                 "total_frames": snap_data["total_frames"],
                 "total_workers": len(snap_data["workers"]),
                 "safe_workers": sum(1 for w in snap_data["workers"] if w.is_compliant),
                 "violations": sum(1 for w in snap_data["workers"] if w.has_active_violation),
-                "safety_score": 100.0 if len(snap_data["workers"]) == 0 else max(0.0, min(100.0, (sum(1 for w in snap_data["workers"] if w.is_compliant) / float(len(snap_data["workers"]))) * 100.0)),
+                "safety_score": 100.0
+                if len(snap_data["workers"]) == 0
+                else max(
+                    0.0,
+                    min(
+                        100.0,
+                        (sum(1 for w in snap_data["workers"] if w.is_compliant) / float(len(snap_data["workers"])))
+                        * 100.0,
+                    ),
+                ),
                 "workers_detail": workers_detail,
                 "events": STATE.get_events()[:50],
             }
-            
+
             if st.button("🖨️ Print Executive Safety Report", key="print_executive_report", use_container_width=True):
                 st.session_state.show_safety_certificate = True
                 st.session_state.certificate_data = cert_data
-            
+
             if st.session_state.get("show_safety_certificate", False):
                 cert_data = st.session_state.get("certificate_data", cert_data)
                 render_printable_safety_certificate(cert_data)

@@ -1,4 +1,5 @@
 """Lightweight health/version payload for operators and uptime probes."""
+
 from __future__ import annotations
 
 import os

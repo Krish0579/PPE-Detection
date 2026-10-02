@@ -5,17 +5,20 @@ Dashboard, Live Monitoring, Safety Analytics, Productivity Analytics, Workers,
 Zones, Alerts, History, Reports, and Settings.
 Zero HTML leaks via strict whitespace minification.
 """
+
 from __future__ import annotations
 
 import base64
 import functools
 import io
+import json
 import math
 import re
 import struct
 import time
 from collections.abc import Callable
 from datetime import datetime
+from html import escape
 from typing import Any
 
 import pandas as pd
@@ -145,7 +148,7 @@ def render_safesight_topbar(current_page: str, health_ok: bool = True, model_nam
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div class="badge badge-{'green' if health_ok else 'red'}" style="padding: 6px 14px; font-size: 11px;">
+                <div class="badge badge-{"green" if health_ok else "red"}" style="padding: 6px 14px; font-size: 11px;">
                     <span class="status-dot {status_class}"></span>
                     {health_text}
                 </div>
@@ -212,7 +215,7 @@ def render_metrics_grid(total_workers: int, safe_workers: int, violations: int, 
                     <div class="metric-icon red">⚠️</div>
                 </div>
                 <div class="metric-main">
-                    <strong style="color: {'var(--red)' if violations > 0 else 'var(--heading)'};">{violations}</strong>
+                    <strong style="color: {"var(--red)" if violations > 0 else "var(--heading)"};">{violations}</strong>
                 </div>
                 <div class="metric-foot">
                     <span class="metric-change {viol_class}">● {violations} unhandled</span>
@@ -465,6 +468,7 @@ def render_workers_grid(workers: list[WorkerStatus]) -> None:
         avatar_fg = "var(--red)" if viol else "var(--green)"
 
         req = getattr(w, "required_ppe", None) or {}
+
         def _get_item_pill(st_val: str, key: str, emoji: str, name: str, no_name: str, req: dict = req) -> str:
             is_req = req.get(key, True) if req else True
             if not is_req:
@@ -536,17 +540,19 @@ def build_workers_status_dataframe(workers: list[Any]) -> pd.DataFrame:
         e_val = _fmt(getattr(w, "goggles_status", ""), "goggles", "Goggles Worn", "NO GOGGLES")
 
         viols = ", ".join(getattr(w, "violations", [])) if getattr(w, "violations", []) else "None (Compliant)"
-        rows.append({
-            "Personnel": f"Worker #{getattr(w, 'worker_id', 1):02d}",
-            "Status": "❌ VIOLATION" if getattr(w, "has_active_violation", False) else "✅ COMPLIANT",
-            "⛑️ Helmet": h_val,
-            "🦺 Vest": v_val,
-            "🧤 Gloves": g_val,
-            "🥾 Boots": b_val,
-            "🥽 Goggles": e_val,
-            "Zone": getattr(w, "zone", "Production Line"),
-            "Active Violations": viols,
-        })
+        rows.append(
+            {
+                "Personnel": f"Worker #{getattr(w, 'worker_id', 1):02d}",
+                "Status": "❌ VIOLATION" if getattr(w, "has_active_violation", False) else "✅ COMPLIANT",
+                "⛑️ Helmet": h_val,
+                "🦺 Vest": v_val,
+                "🧤 Gloves": g_val,
+                "🥾 Boots": b_val,
+                "🥽 Goggles": e_val,
+                "Zone": getattr(w, "zone", "Production Line"),
+                "Active Violations": viols,
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -580,7 +586,7 @@ def consolidate_person_alerts(
 
     # In a session where at most 1 worker is ever concurrently visible (e.g. single camera/station/webcam),
     # all sequential detections/re-entries represent the same person and map to Person 1.
-    single_worker_session = (max_simultaneous <= 1)
+    single_worker_session = max_simultaneous <= 1
 
     def get_or_create_person(p_name: str, worker_id: int) -> dict:
         if single_worker_session:
@@ -643,7 +649,10 @@ def consolidate_person_alerts(
 
             for v in getattr(w, "violations", []):
                 cleaned = v.replace("_", " ").title()
-                if not cleaned.lower().startswith("no ") and cleaned.lower() not in ("restricted zone", "safety violation"):
+                if not cleaned.lower().startswith("no ") and cleaned.lower() not in (
+                    "restricted zone",
+                    "safety violation",
+                ):
                     cleaned = f"No {cleaned}"
                 rec["missing_ppe"].add(cleaned)
 
@@ -669,7 +678,10 @@ def consolidate_person_alerts(
                 rec["dwell_seconds"] = max(rec["dwell_seconds"], prec.get("dwell_seconds", 0.0))
                 for m in prec.get("missing_ppe", []):
                     cleaned = m.replace("_", " ").title()
-                    if not cleaned.lower().startswith("no ") and cleaned.lower() not in ("restricted zone", "safety violation"):
+                    if not cleaned.lower().startswith("no ") and cleaned.lower() not in (
+                        "restricted zone",
+                        "safety violation",
+                    ):
                         cleaned = f"No {cleaned}"
                     rec["missing_ppe"].add(cleaned)
                 rec["active"] = True
@@ -690,7 +702,10 @@ def consolidate_person_alerts(
                 raw_items = m.group(2).split(",")
                 for it in raw_items:
                     cleaned = it.strip().replace("_", " ").title()
-                    if not cleaned.lower().startswith("no ") and cleaned.lower() not in ("restricted zone", "safety violation"):
+                    if not cleaned.lower().startswith("no ") and cleaned.lower() not in (
+                        "restricted zone",
+                        "safety violation",
+                    ):
                         cleaned = f"No {cleaned}"
                     rec["missing_ppe"].add(cleaned)
 
@@ -710,7 +725,10 @@ def consolidate_person_alerts(
                 raw_items = m.group(2).split(",")
                 for it in raw_items:
                     cleaned = it.strip().replace("_", " ").title()
-                    if not cleaned.lower().startswith("no ") and cleaned.lower() not in ("restricted zone", "safety violation"):
+                    if not cleaned.lower().startswith("no ") and cleaned.lower() not in (
+                        "restricted zone",
+                        "safety violation",
+                    ):
                         cleaned = f"No {cleaned}"
                     rec["missing_ppe"].add(cleaned)
             else:
@@ -720,7 +738,10 @@ def consolidate_person_alerts(
                     rec["last_seen"] = max(rec["last_seen"], ts)
                     rec["active"] = True
                     cleaned = lbl.strip().replace("-", " ").replace("_", " ").title()
-                    if not cleaned.lower().startswith("no ") and cleaned.lower() not in ("restricted zone", "safety violation"):
+                    if not cleaned.lower().startswith("no ") and cleaned.lower() not in (
+                        "restricted zone",
+                        "safety violation",
+                    ):
                         cleaned = f"No {cleaned}"
                     rec["missing_ppe"].add(cleaned)
 
@@ -759,14 +780,8 @@ def render_alerts_view(
         )
         return
 
-    active_incidents = [
-        p for p in consolidated
-        if p["person_name"] not in st.session_state["resolved_person_alerts"]
-    ]
-    resolved_incidents = [
-        p for p in consolidated
-        if p["person_name"] in st.session_state["resolved_person_alerts"]
-    ]
+    active_incidents = [p for p in consolidated if p["person_name"] not in st.session_state["resolved_person_alerts"]]
+    resolved_incidents = [p for p in consolidated if p["person_name"] in st.session_state["resolved_person_alerts"]]
 
     if active_incidents:
         st.markdown("#### Active Personnel Violations")
@@ -794,14 +809,12 @@ def render_alerts_view(
                 dur_str = f"{duration_sec // 60}m {duration_sec % 60}s" if duration_sec > 60 else f"{duration_sec}s"
 
                 missing_badges = "".join(
-                    f'<span class="badge badge-red" style="margin: 2px;">{m}</span>'
-                    for m in missing_sorted
+                    f'<span class="badge badge-red" style="margin: 2px;">{m}</span>' for m in missing_sorted
                 )
 
                 compliant_sorted = sorted(p["compliant_ppe"])
                 compliant_badges = "".join(
-                    f'<span class="badge badge-green" style="margin: 2px;">{c}</span>'
-                    for c in compliant_sorted
+                    f'<span class="badge badge-green" style="margin: 2px;">{c}</span>' for c in compliant_sorted
                 )
                 compliant_html = ""
                 if compliant_badges:
@@ -827,7 +840,7 @@ def render_alerts_view(
                             {p_name} — {missing_summary}
                         </h4>
                         <p style="font-size: 11px; color: var(--muted); margin-bottom: 10px;">
-                            Location: {p['zone']} │ Active: {dur_str}
+                            Location: {p["zone"]} │ Active: {dur_str}
                         </p>
                         <div>
                             <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--red); font-weight: 700; margin-bottom: 4px;">
@@ -909,7 +922,9 @@ def render_safety_analytics_view(
     with c1:
         st.markdown("#### Safety Compliance Trends (Past Rolling Window)")
         if not history_df.empty and "Violations" in history_df.columns:
-            display_cols = [c for c in ["Helmets", "Vests", "Boots", "Gloves", "Goggles", "Violations"] if c in history_df.columns]
+            display_cols = [
+                c for c in ["Helmets", "Vests", "Boots", "Gloves", "Goggles", "Violations"] if c in history_df.columns
+            ]
             if display_cols:
                 st.line_chart(history_df[display_cols], height=320)
             else:
@@ -1056,7 +1071,7 @@ def render_floor_map(workers: list[WorkerStatus], zones: list[ZoneConfig]) -> No
             pin_top = 40 + (i * 16) % 45
             worker_pins.append(
                 f"""
-                <div style="position: absolute; left: {pin_left}%; top: {pin_top}%; width: 26px; height: 26px; border-radius: 50%; background: var(--{pin_tone}); color: white; display: grid; place-items: center; font-size: 10px; font-weight: 700; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 5;" title="Worker #{w.worker_id:02d} ({'UNSAFE' if w.has_active_violation else 'SAFE'})">
+                <div style="position: absolute; left: {pin_left}%; top: {pin_top}%; width: 26px; height: 26px; border-radius: 50%; background: var(--{pin_tone}); color: white; display: grid; place-items: center; font-size: 10px; font-weight: 700; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.15); z-index: 5;" title="Worker #{w.worker_id:02d} ({"UNSAFE" if w.has_active_violation else "SAFE"})">
                     #{w.worker_id:02d}
                 </div>
                 """
@@ -1064,10 +1079,10 @@ def render_floor_map(workers: list[WorkerStatus], zones: list[ZoneConfig]) -> No
         joined_pins = "".join(worker_pins)
 
         box_html = f"""
-        <div style="position: absolute; left: {coords['left']}; top: {coords['top']}; width: {coords['width']}; height: {coords['height']}; border: 2px dashed {border_color}; border-radius: 8px; background: {bg_color}; padding: 12px; box-sizing: border-box;">
+        <div style="position: absolute; left: {coords["left"]}; top: {coords["top"]}; width: {coords["width"]}; height: {coords["height"]}; border: 2px dashed {border_color}; border-radius: 8px; background: {bg_color}; padding: 12px; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <strong style="font-size: 11.5px; color: var(--heading);">{z.name}</strong>
-                <span class="badge {'badge-amber' if is_restr else 'badge-green'}" style="font-size: 8px;">{z.type.upper()}</span>
+                <span class="badge {"badge-amber" if is_restr else "badge-green"}" style="font-size: 8px;">{z.type.upper()}</span>
             </div>
             <small style="color: var(--muted); font-size: 9px; display: block; margin-top: 2px;">
                 Occupancy: <strong>{len(zone_workers)}</strong> / {z.capacity}
@@ -1115,7 +1130,9 @@ def render_trend_chart_panel(history_df: pd.DataFrame) -> None:
         """
     )
     if not history_df.empty and "Violations" in history_df.columns:
-        display_cols = [c for c in ["Helmets", "Vests", "Boots", "Gloves", "Goggles", "Violations"] if c in history_df.columns]
+        display_cols = [
+            c for c in ["Helmets", "Vests", "Boots", "Gloves", "Goggles", "Violations"] if c in history_df.columns
+        ]
         if display_cols:
             st.line_chart(history_df[display_cols], height=240)
         else:
@@ -1317,7 +1334,7 @@ def render_reports_view(
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px;">
                 <div>
                     <span style="color: var(--muted); font-size: 10px;">GENERATED AT</span>
-                    <strong style="display: block; font-size: 13px; margin-top: 4px; color: var(--heading);">{datetime.now().strftime('%Y-%m-%d %H:%M')}</strong>
+                    <strong style="display: block; font-size: 13px; margin-top: 4px; color: var(--heading);">{datetime.now().strftime("%Y-%m-%d %H:%M")}</strong>
                 </div>
                 <div>
                     <span style="color: var(--muted); font-size: 10px;">MODEL CHECKPOINT</span>
@@ -1367,7 +1384,7 @@ def render_printable_safety_certificate(cert_data: dict) -> None:
                 </div>
                 <div style="text-align:right;">
                     <div style="font-size:11px;color:var(--muted);">Generated</div>
-                    <div style="font-size:12px;font-weight:600;">{cert_data.get('generated_at', '')}</div>
+                    <div style="font-size:12px;font-weight:600;">{cert_data.get("generated_at", "")}</div>
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
@@ -1378,15 +1395,15 @@ def render_printable_safety_certificate(cert_data: dict) -> None:
                 </div>
                 <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;">
                     <div style="font-size:10px;color:var(--muted);">PERSONNEL</div>
-                    <div style="font-size:22px;font-weight:800;">{cert_data.get('total_workers', 0)}</div>
+                    <div style="font-size:22px;font-weight:800;">{cert_data.get("total_workers", 0)}</div>
                 </div>
                 <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;">
                     <div style="font-size:10px;color:var(--muted);">VIOLATIONS</div>
-                    <div style="font-size:22px;font-weight:800;color:var(--red);">{cert_data.get('violations', 0)}</div>
+                    <div style="font-size:22px;font-weight:800;color:var(--red);">{cert_data.get("violations", 0)}</div>
                 </div>
                 <div style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;">
                     <div style="font-size:10px;color:var(--muted);">FRAMES</div>
-                    <div style="font-size:22px;font-weight:800;">{cert_data.get('total_frames', 0)}</div>
+                    <div style="font-size:22px;font-weight:800;">{cert_data.get("total_frames", 0)}</div>
                 </div>
             </div>
             <div style="margin-bottom:16px;">
@@ -1401,7 +1418,7 @@ def render_printable_safety_certificate(cert_data: dict) -> None:
                 </table>
             </div>
             <div style="font-size:10px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;">
-                Model: {cert_data.get('model_name', 'N/A')} · Session: {cert_data.get('session_id', 'N/A')}
+                Model: {cert_data.get("model_name", "N/A")} · Session: {cert_data.get("session_id", "N/A")}
             </div>
         </div>
         """
@@ -1532,7 +1549,7 @@ def render_perf_chip(
         label_text = labels.get(mode_key, mode_key.title())
         render_html(
             f'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;'
-            f'border:1px solid var(--line);border-radius:999px;font-size:10px;'
+            f"border:1px solid var(--line);border-radius:999px;font-size:10px;"
             f'color:var(--secondary);background:var(--panel);">{label_text}</span>'
         )
     else:
@@ -1542,11 +1559,11 @@ def render_perf_chip(
             fps_val = 0.0
         render_html(
             f'<div style="display:inline-flex;align-items:center;gap:8px;padding:3px 9px;'
-            f'background:var(--panel);border:1px solid var(--line);border-radius:6px;font-size:10.5px;'
+            f"background:var(--panel);border:1px solid var(--line);border-radius:6px;font-size:10.5px;"
             f'font-family:monospace;margin:4px 0;">'
             f'<span style="color:var(--muted);font-weight:600;">{label}</span>'
             f'<span style="color:var(--green);">⚡ {fps_val:.1f} FPS │ {inference_ms:.0f} ms</span>'
-            f'</div>'
+            f"</div>"
         )
 
 
@@ -1574,3 +1591,107 @@ def render_skeleton_block(title: str = "Loading…", subtitle: str = "") -> None
         """
     )
 
+
+def render_empty_state(icon: str, title: str, subtitle: str = "", hint: str = "") -> None:
+    """Render a themed, action-led empty state (U1: replaces flat cv2.putText placeholders)."""
+    sub_html = (
+        f'<p style="margin:6px 0 0;font-size:13px;color:var(--secondary);">{escape(subtitle)}</p>' if subtitle else ""
+    )
+    hint_html = (
+        f'<div style="margin-top:14px;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;'
+        f"border:1px solid var(--line);border-radius:999px;background:var(--bg);font-size:11.5px;"
+        f'color:var(--muted);">{hint}</div>'
+        if hint
+        else ""
+    )
+    render_html(
+        f"""
+        <div style="background:var(--panel);border:1px dashed var(--line);border-radius:10px;
+                    padding:36px 24px;text-align:center;margin:12px 0;">
+            <div style="font-size:30px;line-height:1;" aria-hidden="true">{icon}</div>
+            <div style="margin-top:10px;font-size:14.5px;font-weight:650;color:var(--heading);">{escape(title)}</div>
+            {sub_html}
+            {hint_html}
+        </div>
+        """
+    )
+
+
+def render_keyboard_shortcuts_script(page_names: list[str] | None = None) -> None:
+    """Install the global keyboard-shortcut handler (plan item U3).
+
+    ``1``–``5`` switch workspace pages, ``S`` starts/stops the camera, and
+    ``?`` opens the shortcuts cheat-sheet dialog. Keys are ignored while the
+    operator is typing in an input and while modifier keys are held.
+
+    Navigation is translated into clicks on hidden hotkey buttons rendered by
+    ``app.py`` (labels ``__hk_nav_N`` / ``__hk_cam`` / ``__hk_help``): clicking
+    triggers a normal Streamlit rerun so session state (camera, evidence,
+    theme) is preserved — unlike a URL-driven page reload. Invalid or missing
+    buttons are safely discarded.
+    """
+    names = list(page_names or [])
+    payload = json.dumps(names)
+    script = f"""
+    <script>
+    (function() {{
+        var top = null;
+        try {{ top = window.parent; }} catch (e) {{}}
+        var doc = top ? top.document : document;
+
+        function hideHotkeyButtons() {{
+            try {{
+                var buttons = doc.querySelectorAll('[data-testid="stButton"] button');
+                for (var i = 0; i < buttons.length; i++) {{
+                    var txt = (buttons[i].textContent || "").trim();
+                    if (txt.indexOf("__hk_") === 0) {{
+                        var el = buttons[i].closest('[data-testid="element-container"]') || buttons[i];
+                        el.style.display = "none";
+                    }}
+                }}
+            }} catch (e) {{}}
+        }}
+
+        // Re-hide on every rerun (Streamlit rebuilds the DOM each run)
+        hideHotkeyButtons();
+
+        if (!top || top.__safesight_hotkeys_bound) return;
+        top.__safesight_hotkeys_bound = true;
+
+        var PAGE_NAMES = {payload};
+
+        function findHotkey(label) {{
+            try {{
+                var buttons = doc.querySelectorAll('[data-testid="stButton"] button');
+                for (var i = 0; i < buttons.length; i++) {{
+                    if ((buttons[i].textContent || "").trim() === label) return buttons[i];
+                }}
+            }} catch (e) {{}}
+            return null;
+        }}
+
+        function click(label) {{
+            var btn = findHotkey(label);
+            if (btn) {{ btn.click(); }}
+        }}
+
+        // Bind on the parent document: keypresses inside component iframes
+        // never propagate, so the handler must live where the operator types.
+        doc.addEventListener('keydown', function(e) {{
+            if (e.ctrlKey || e.metaKey || e.altKey || e.altGraphKey) return;
+            var t = e.target;
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+            var k = e.key;
+            if (k === 's' || k === 'S') {{
+                click('__hk_cam');
+            }} else if (k >= '1' && k <= '9') {{
+                var idx = parseInt(k, 10) - 1;
+                if (idx < PAGE_NAMES.length) click('__hk_nav_' + (idx + 1));
+            }} else if (k === '?' || (e.shiftKey && k === '/')) {{
+                click('__hk_help');
+            }}
+        }});
+    }})();
+    </script>
+    """
+    st_components.html(script, height=0, width=0)

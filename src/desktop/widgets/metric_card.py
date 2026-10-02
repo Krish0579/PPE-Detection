@@ -1,4 +1,5 @@
 """Industrial KPI Metric Card widget matching original Streamlit design."""
+
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
@@ -58,8 +59,8 @@ class MetricCard(QFrame):
         self.lbl_icon = QLabel(cfg["icon"])
         self.lbl_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_icon.setStyleSheet(f"""
-            background-color: {cfg['soft']};
-            color: {cfg['icon_col']};
+            background-color: {cfg["soft"]};
+            color: {cfg["icon_col"]};
             border-radius: 8px;
             padding: 4px 8px;
             font-size: 15px;
@@ -75,7 +76,9 @@ class MetricCard(QFrame):
 
         # Subtitle / Foot note
         self.lbl_subtitle = QLabel(subtitle)
-        self.lbl_subtitle.setStyleSheet("font-size: 11.5px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 6px; margin-top: 2px;")
+        self.lbl_subtitle.setStyleSheet(
+            "font-size: 11.5px; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 6px; margin-top: 2px;"
+        )
         layout.addWidget(self.lbl_subtitle)
 
     def set_value(self, value: str, subtitle: str | None = None) -> None:

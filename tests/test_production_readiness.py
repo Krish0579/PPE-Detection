@@ -7,6 +7,7 @@ Tests:
 4. Semantic normalization, alias matching, and label formatting for all 11 classes.
 5. EvidenceManager snapshot archiving, SQLite integration, and ZIP export with manifest.json.
 """
+
 from __future__ import annotations
 
 import shutil
@@ -32,7 +33,6 @@ from src.storage.evidence import EvidenceManager
 
 
 class TestProductionReadiness(unittest.TestCase):
-
     def setUp(self):
         self.temp_dir = Path(tempfile.mkdtemp(prefix="safesight_test_"))
         self.evidence_mgr = EvidenceManager(
@@ -47,12 +47,66 @@ class TestProductionReadiness(unittest.TestCase):
     def test_all_five_ppe_categories_compliant(self):
         """Worker wearing all 5 PPE items must be COMPLIANT in all 5 and overall SAFE."""
         dets = [
-            {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "helmet", "x1": 150, "y1": 105, "x2": 250, "y2": 190, "confidence": 0.91, "violation": False, "display_label": "Helmet"},
-            {"label": "goggles", "x1": 170, "y1": 150, "x2": 230, "y2": 180, "confidence": 0.88, "violation": False, "display_label": "Goggles"},
-            {"label": "vest", "x1": 120, "y1": 220, "x2": 280, "y2": 450, "confidence": 0.92, "violation": False, "display_label": "Vest"},
-            {"label": "gloves", "x1": 80, "y1": 380, "x2": 140, "y2": 450, "confidence": 0.85, "violation": False, "display_label": "Gloves"},
-            {"label": "boots", "x1": 130, "y1": 520, "x2": 270, "y2": 595, "confidence": 0.89, "violation": False, "display_label": "Boots"},
+            {
+                "label": "person",
+                "x1": 100,
+                "y1": 100,
+                "x2": 300,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "helmet",
+                "x1": 150,
+                "y1": 105,
+                "x2": 250,
+                "y2": 190,
+                "confidence": 0.91,
+                "violation": False,
+                "display_label": "Helmet",
+            },
+            {
+                "label": "goggles",
+                "x1": 170,
+                "y1": 150,
+                "x2": 230,
+                "y2": 180,
+                "confidence": 0.88,
+                "violation": False,
+                "display_label": "Goggles",
+            },
+            {
+                "label": "vest",
+                "x1": 120,
+                "y1": 220,
+                "x2": 280,
+                "y2": 450,
+                "confidence": 0.92,
+                "violation": False,
+                "display_label": "Vest",
+            },
+            {
+                "label": "gloves",
+                "x1": 80,
+                "y1": 380,
+                "x2": 140,
+                "y2": 450,
+                "confidence": 0.85,
+                "violation": False,
+                "display_label": "Gloves",
+            },
+            {
+                "label": "boots",
+                "x1": 130,
+                "y1": 520,
+                "x2": 270,
+                "y2": 595,
+                "confidence": 0.89,
+                "violation": False,
+                "display_label": "Boots",
+            },
         ]
         workers = associate_ppe_to_workers(dets)
         self.assertEqual(len(workers), 1)
@@ -69,12 +123,66 @@ class TestProductionReadiness(unittest.TestCase):
     def test_all_five_ppe_categories_violations(self):
         """Worker with explicit violations on all 5 items must have active violations on each."""
         dets = [
-            {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "no-helmet", "x1": 150, "y1": 105, "x2": 250, "y2": 190, "confidence": 0.91, "violation": True, "display_label": "no-helmet"},
-            {"label": "no-goggle", "x1": 170, "y1": 150, "x2": 230, "y2": 180, "confidence": 0.88, "violation": True, "display_label": "no-goggle"},
-            {"label": "no-vest", "x1": 120, "y1": 220, "x2": 280, "y2": 450, "confidence": 0.92, "violation": True, "display_label": "no-vest"},
-            {"label": "no-gloves", "x1": 80, "y1": 380, "x2": 140, "y2": 450, "confidence": 0.85, "violation": True, "display_label": "no-gloves"},
-            {"label": "no-boots", "x1": 130, "y1": 520, "x2": 270, "y2": 595, "confidence": 0.89, "violation": True, "display_label": "no-boots"},
+            {
+                "label": "person",
+                "x1": 100,
+                "y1": 100,
+                "x2": 300,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "no-helmet",
+                "x1": 150,
+                "y1": 105,
+                "x2": 250,
+                "y2": 190,
+                "confidence": 0.91,
+                "violation": True,
+                "display_label": "no-helmet",
+            },
+            {
+                "label": "no-goggle",
+                "x1": 170,
+                "y1": 150,
+                "x2": 230,
+                "y2": 180,
+                "confidence": 0.88,
+                "violation": True,
+                "display_label": "no-goggle",
+            },
+            {
+                "label": "no-vest",
+                "x1": 120,
+                "y1": 220,
+                "x2": 280,
+                "y2": 450,
+                "confidence": 0.92,
+                "violation": True,
+                "display_label": "no-vest",
+            },
+            {
+                "label": "no-gloves",
+                "x1": 80,
+                "y1": 380,
+                "x2": 140,
+                "y2": 450,
+                "confidence": 0.85,
+                "violation": True,
+                "display_label": "no-gloves",
+            },
+            {
+                "label": "no-boots",
+                "x1": 130,
+                "y1": 520,
+                "x2": 270,
+                "y2": 595,
+                "confidence": 0.89,
+                "violation": True,
+                "display_label": "no-boots",
+            },
         ]
         workers = associate_ppe_to_workers(dets)
         self.assertEqual(len(workers), 1)
@@ -91,11 +199,38 @@ class TestProductionReadiness(unittest.TestCase):
     def test_violation_precedence_over_subsequent_detection(self):
         """If a violation is detected on an item, a subsequent compliant item must not overwrite it."""
         dets = [
-            {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
+            {
+                "label": "person",
+                "x1": 100,
+                "y1": 100,
+                "x2": 300,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
             # Hand 1: violation (no-gloves)
-            {"label": "no-gloves", "x1": 80, "y1": 380, "x2": 140, "y2": 450, "confidence": 0.90, "violation": True, "display_label": "No Gloves"},
+            {
+                "label": "no-gloves",
+                "x1": 80,
+                "y1": 380,
+                "x2": 140,
+                "y2": 450,
+                "confidence": 0.90,
+                "violation": True,
+                "display_label": "No Gloves",
+            },
             # Hand 2: compliant (gloves)
-            {"label": "gloves", "x1": 260, "y1": 380, "x2": 320, "y2": 450, "confidence": 0.85, "violation": False, "display_label": "Gloves"},
+            {
+                "label": "gloves",
+                "x1": 260,
+                "y1": 380,
+                "x2": 320,
+                "y2": 450,
+                "confidence": 0.85,
+                "violation": False,
+                "display_label": "Gloves",
+            },
         ]
         workers = associate_ppe_to_workers(dets)
         self.assertEqual(len(workers), 1)
@@ -186,6 +321,7 @@ class TestProductionReadiness(unittest.TestCase):
         # Inspect ZIP contents
         import io
         import zipfile
+
         with zipfile.ZipFile(io.BytesIO(zip_bytes), "r") as zf:
             namelist = zf.namelist()
             self.assertIn("manifest.json", namelist)
@@ -215,9 +351,36 @@ class TestProductionReadiness(unittest.TestCase):
         req_ppe = {"helmet": True, "vest": True, "boots": True, "gloves": False, "goggles": False}
         # Worker box extends to 715 in a 720h frame -> lower body is not visible
         dets = [
-            {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 715, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "helmet", "x1": 150, "y1": 105, "x2": 250, "y2": 190, "confidence": 0.91, "violation": False, "display_label": "Helmet"},
-            {"label": "vest", "x1": 120, "y1": 220, "x2": 280, "y2": 450, "confidence": 0.92, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": 100,
+                "y1": 100,
+                "x2": 300,
+                "y2": 715,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "helmet",
+                "x1": 150,
+                "y1": 105,
+                "x2": 250,
+                "y2": 190,
+                "confidence": 0.91,
+                "violation": False,
+                "display_label": "Helmet",
+            },
+            {
+                "label": "vest",
+                "x1": 120,
+                "y1": 220,
+                "x2": 280,
+                "y2": 450,
+                "confidence": 0.92,
+                "violation": False,
+                "display_label": "Vest",
+            },
         ]
         workers = associate_ppe_to_workers(dets, frame_w=1280, frame_h=720, required_ppe=req_ppe)
         self.assertEqual(len(workers), 1)
@@ -235,9 +398,36 @@ class TestProductionReadiness(unittest.TestCase):
         req_ppe = {"helmet": True, "vest": True, "boots": True, "gloves": False, "goggles": False}
         # Worker box ends at 600 in 720h frame -> lower body is fully visible
         dets = [
-            {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "helmet", "x1": 150, "y1": 105, "x2": 250, "y2": 190, "confidence": 0.91, "violation": False, "display_label": "Helmet"},
-            {"label": "vest", "x1": 120, "y1": 220, "x2": 280, "y2": 450, "confidence": 0.92, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": 100,
+                "y1": 100,
+                "x2": 300,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "helmet",
+                "x1": 150,
+                "y1": 105,
+                "x2": 250,
+                "y2": 190,
+                "confidence": 0.91,
+                "violation": False,
+                "display_label": "Helmet",
+            },
+            {
+                "label": "vest",
+                "x1": 120,
+                "y1": 220,
+                "x2": 280,
+                "y2": 450,
+                "confidence": 0.92,
+                "violation": False,
+                "display_label": "Vest",
+            },
         ]
         workers = associate_ppe_to_workers(dets, frame_w=1280, frame_h=720, required_ppe=req_ppe)
         self.assertEqual(len(workers), 1)
@@ -251,6 +441,7 @@ class TestProductionReadiness(unittest.TestCase):
     def test_force_infer_overrides_frame_skip(self):
         """force_infer=True must force inference execution even on skipped frames."""
         from src.video.pipeline import TelemetryState, VideoPipeline
+
         state = TelemetryState()
         # Set to performance mode (frame_skip=2)
         state.update_config(conf=0.25, iou=0.45, mode_key="performance")
@@ -281,9 +472,36 @@ class TestProductionReadiness(unittest.TestCase):
 
         # Frame 1: Worker is compliant with helmet and vest
         dets_f1 = [
-            {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "helmet", "x1": 150, "y1": 105, "x2": 250, "y2": 190, "confidence": 0.91, "violation": False, "display_label": "Helmet"},
-            {"label": "vest", "x1": 120, "y1": 220, "x2": 280, "y2": 450, "confidence": 0.92, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": 100,
+                "y1": 100,
+                "x2": 300,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "helmet",
+                "x1": 150,
+                "y1": 105,
+                "x2": 250,
+                "y2": 190,
+                "confidence": 0.91,
+                "violation": False,
+                "display_label": "Helmet",
+            },
+            {
+                "label": "vest",
+                "x1": 120,
+                "y1": 220,
+                "x2": 280,
+                "y2": 450,
+                "confidence": 0.92,
+                "violation": False,
+                "display_label": "Vest",
+            },
         ]
         w_f1 = associate_ppe_to_workers(dets_f1, tracker=tracker, required_ppe=req_ppe, timestamp=1.0)[0]
         self.assertTrue(w_f1.is_compliant)
@@ -291,8 +509,26 @@ class TestProductionReadiness(unittest.TestCase):
 
         # Frame 2: Transient detector miss on helmet (missing 1 frame)
         dets_f2 = [
-            {"label": "person", "x1": 102, "y1": 100, "x2": 302, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "vest", "x1": 122, "y1": 220, "x2": 282, "y2": 450, "confidence": 0.92, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": 102,
+                "y1": 100,
+                "x2": 302,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "vest",
+                "x1": 122,
+                "y1": 220,
+                "x2": 282,
+                "y2": 450,
+                "confidence": 0.92,
+                "violation": False,
+                "display_label": "Vest",
+            },
         ]
         w_f2 = associate_ppe_to_workers(dets_f2, tracker=tracker, required_ppe=req_ppe, timestamp=1.1)[0]
         # Should be debounced: status remains COMPLIANT across the 1-frame dropout
@@ -301,9 +537,36 @@ class TestProductionReadiness(unittest.TestCase):
 
         # Frame 3: Explicit violation (model detects no-helmet) -> MUST trigger immediately with 0 delay!
         dets_f3 = [
-            {"label": "person", "x1": 102, "y1": 100, "x2": 302, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "no-helmet", "x1": 150, "y1": 105, "x2": 250, "y2": 190, "confidence": 0.90, "violation": True, "display_label": "No Helmet"},
-            {"label": "vest", "x1": 122, "y1": 220, "x2": 282, "y2": 450, "confidence": 0.92, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": 102,
+                "y1": 100,
+                "x2": 302,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "no-helmet",
+                "x1": 150,
+                "y1": 105,
+                "x2": 250,
+                "y2": 190,
+                "confidence": 0.90,
+                "violation": True,
+                "display_label": "No Helmet",
+            },
+            {
+                "label": "vest",
+                "x1": 122,
+                "y1": 220,
+                "x2": 282,
+                "y2": 450,
+                "confidence": 0.92,
+                "violation": False,
+                "display_label": "Vest",
+            },
         ]
         w_f3 = associate_ppe_to_workers(dets_f3, tracker=tracker, required_ppe=req_ppe, timestamp=1.2)[0]
         self.assertEqual(w_f3.helmet_status, "VIOLATION")
@@ -316,17 +579,62 @@ class TestProductionReadiness(unittest.TestCase):
 
         # Frame 1: Worker compliant
         dets_f1 = [
-            {"label": "person", "x1": 100, "y1": 100, "x2": 300, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "helmet", "x1": 150, "y1": 105, "x2": 250, "y2": 190, "confidence": 0.91, "violation": False, "display_label": "Helmet"},
-            {"label": "vest", "x1": 120, "y1": 220, "x2": 280, "y2": 450, "confidence": 0.92, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": 100,
+                "y1": 100,
+                "x2": 300,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "helmet",
+                "x1": 150,
+                "y1": 105,
+                "x2": 250,
+                "y2": 190,
+                "confidence": 0.91,
+                "violation": False,
+                "display_label": "Helmet",
+            },
+            {
+                "label": "vest",
+                "x1": 120,
+                "y1": 220,
+                "x2": 280,
+                "y2": 450,
+                "confidence": 0.92,
+                "violation": False,
+                "display_label": "Vest",
+            },
         ]
         w_f1 = associate_ppe_to_workers(dets_f1, tracker=tracker, required_ppe=req_ppe, timestamp=1.0)[0]
         self.assertTrue(w_f1.is_compliant)
 
         # Frame 2: Missing helmet frame 1 -> debounced to COMPLIANT
         dets_f2 = [
-            {"label": "person", "x1": 102, "y1": 100, "x2": 302, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "vest", "x1": 122, "y1": 220, "x2": 282, "y2": 450, "confidence": 0.92, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": 102,
+                "y1": 100,
+                "x2": 302,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "vest",
+                "x1": 122,
+                "y1": 220,
+                "x2": 282,
+                "y2": 450,
+                "confidence": 0.92,
+                "violation": False,
+                "display_label": "Vest",
+            },
         ]
         w_f2 = associate_ppe_to_workers(dets_f2, tracker=tracker, required_ppe=req_ppe, timestamp=1.1)[0]
         self.assertEqual(w_f2.helmet_status, "COMPLIANT")
@@ -334,8 +642,26 @@ class TestProductionReadiness(unittest.TestCase):
 
         # Frame 3: Missing helmet frame 2 -> must NOT be debounced, transitions to VIOLATION
         dets_f3 = [
-            {"label": "person", "x1": 102, "y1": 100, "x2": 302, "y2": 600, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "vest", "x1": 122, "y1": 220, "x2": 282, "y2": 450, "confidence": 0.92, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": 102,
+                "y1": 100,
+                "x2": 302,
+                "y2": 600,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "vest",
+                "x1": 122,
+                "y1": 220,
+                "x2": 282,
+                "y2": 450,
+                "confidence": 0.92,
+                "violation": False,
+                "display_label": "Vest",
+            },
         ]
         w_f3 = associate_ppe_to_workers(dets_f3, tracker=tracker, required_ppe=req_ppe, timestamp=1.2)[0]
         self.assertEqual(w_f3.helmet_status, "VIOLATION")
@@ -362,9 +688,36 @@ class TestProductionReadiness(unittest.TestCase):
         py2 = int(center_y * fh)
 
         dets = [
-            {"label": "person", "x1": px1, "y1": py1, "x2": px2, "y2": py2, "confidence": 0.95, "violation": False, "display_label": "Person"},
-            {"label": "helmet", "x1": px1 + 10, "y1": py1 + 5, "x2": px2 - 10, "y2": py1 + 40, "confidence": 0.90, "violation": False, "display_label": "Helmet"},
-            {"label": "vest", "x1": px1 + 5, "y1": py1 + 45, "x2": px2 - 5, "y2": py2 - 20, "confidence": 0.90, "violation": False, "display_label": "Vest"},
+            {
+                "label": "person",
+                "x1": px1,
+                "y1": py1,
+                "x2": px2,
+                "y2": py2,
+                "confidence": 0.95,
+                "violation": False,
+                "display_label": "Person",
+            },
+            {
+                "label": "helmet",
+                "x1": px1 + 10,
+                "y1": py1 + 5,
+                "x2": px2 - 10,
+                "y2": py1 + 40,
+                "confidence": 0.90,
+                "violation": False,
+                "display_label": "Helmet",
+            },
+            {
+                "label": "vest",
+                "x1": px1 + 5,
+                "y1": py1 + 45,
+                "x2": px2 - 5,
+                "y2": py2 - 20,
+                "confidence": 0.90,
+                "violation": False,
+                "display_label": "Vest",
+            },
         ]
         workers = associate_ppe_to_workers(dets, frame_w=fw, frame_h=fh, zones=zones)
         self.assertEqual(len(workers), 1)
@@ -420,6 +773,7 @@ class TestProductionReadiness(unittest.TestCase):
     def test_load_model_nonexistent_path_raises_filenotfound(self):
         """load_model must immediately raise FileNotFoundError on invalid path."""
         from src.core.model_manager import load_model
+
         with self.assertRaises(FileNotFoundError):
             load_model("/nonexistent/path/weights.pt")
 

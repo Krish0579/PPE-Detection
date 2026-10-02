@@ -8,6 +8,7 @@ Covers fixes for:
   physically out of frame.
 - Per-class confidence floors covering every class the 11-class model emits.
 """
+
 from __future__ import annotations
 
 import json
@@ -44,9 +45,17 @@ class _FakeModel:
     """Minimal YOLO stand-in that emits the real model's 11 class names."""
 
     NAMES: ClassVar[dict[int, str]] = {
-        0: "helmet", 1: "gloves", 2: "vest", 3: "boots", 4: "goggles",
-        5: "none", 6: "Person", 7: "no_helmet", 8: "no_goggle",
-        9: "no_gloves", 10: "no_boots",
+        0: "helmet",
+        1: "gloves",
+        2: "vest",
+        3: "boots",
+        4: "goggles",
+        5: "none",
+        6: "Person",
+        7: "no_helmet",
+        8: "no_goggle",
+        9: "no_gloves",
+        10: "no_boots",
     }
 
     def predict(self, image, **kwargs):
@@ -74,14 +83,22 @@ def test_per_class_conf_covers_all_model_classes():
     calibrated floor. ('none' is intentionally excluded: run_inference drops
     background 'none' boxes before thresholding.)"""
     model_labels = {
-        "helmet", "gloves", "vest", "boots", "goggles", "person",
-        "no_helmet", "no_goggle", "no_gloves", "no_boots",
+        "helmet",
+        "gloves",
+        "vest",
+        "boots",
+        "goggles",
+        "person",
+        "no_helmet",
+        "no_goggle",
+        "no_gloves",
+        "no_boots",
     }
     for raw in model_labels:
         norm = raw.replace("_", "-")
-        assert (
-            raw in DEFAULT_PER_CLASS_CONF or norm in DEFAULT_PER_CLASS_CONF
-        ), f"missing per-class confidence floor for model class: {raw}"
+        assert raw in DEFAULT_PER_CLASS_CONF or norm in DEFAULT_PER_CLASS_CONF, (
+            f"missing per-class confidence floor for model class: {raw}"
+        )
 
 
 def test_required_ppe_defaults_cover_all_five_categories():
@@ -91,8 +108,12 @@ def test_required_ppe_defaults_cover_all_five_categories():
 def test_report_payload_timestamps_are_tz_aware():
     store = EvidenceManager()
     _, json_bytes = store.generate_report_payload(
-        total_frames=10, fps=5.0, model_name="best.pt",
-        counts={"violation": 1, "compliance": 2}, detections=[], events=[],
+        total_frames=10,
+        fps=5.0,
+        model_name="best.pt",
+        counts={"violation": 1, "compliance": 2},
+        detections=[],
+        events=[],
     )
     payload = json.loads(json_bytes.decode("utf-8"))
     ts = datetime.fromisoformat(payload["generated_at"])
@@ -103,13 +124,21 @@ def test_no_false_gloves_violation_on_closeup_worker():
     """A wide/short close-up person box (head-and-shoulders webcam view) must
     NOT auto-flag 'No Gloves' when no gloves region is visible."""
     dets = [
-        {"label": "person", "violation": False, "confidence": 0.9,
-         "x1": 100, "y1": 40, "x2": 560, "y2": 300},  # w_h/w_w = 0.57 < 1.0
+        {
+            "label": "person",
+            "violation": False,
+            "confidence": 0.9,
+            "x1": 100,
+            "y1": 40,
+            "x2": 560,
+            "y2": 300,
+        },  # w_h/w_w = 0.57 < 1.0
     ]
     workers = associate_ppe_to_workers(
-        dets, frame_w=640, frame_h=480,
-        required_ppe={"helmet": True, "vest": True, "boots": True,
-                      "gloves": True, "goggles": True},
+        dets,
+        frame_w=640,
+        frame_h=480,
+        required_ppe={"helmet": True, "vest": True, "boots": True, "gloves": True, "goggles": True},
     )
     assert len(workers) == 1
     w = workers[0]
@@ -120,16 +149,23 @@ def test_no_false_gloves_violation_on_closeup_worker():
 def test_explicit_no_gloves_still_flags_closeup_worker():
     """An explicit no_gloves detection must flag even on a close-up view."""
     dets = [
-        {"label": "person", "violation": False, "confidence": 0.9,
-         "x1": 100, "y1": 40, "x2": 560, "y2": 300},
-        {"label": "no-gloves", "display_label": format_label("no_gloves"),
-         "violation": True, "confidence": 0.8,
-         "x1": 200, "y1": 150, "x2": 320, "y2": 240},
+        {"label": "person", "violation": False, "confidence": 0.9, "x1": 100, "y1": 40, "x2": 560, "y2": 300},
+        {
+            "label": "no-gloves",
+            "display_label": format_label("no_gloves"),
+            "violation": True,
+            "confidence": 0.8,
+            "x1": 200,
+            "y1": 150,
+            "x2": 320,
+            "y2": 240,
+        },
     ]
     workers = associate_ppe_to_workers(
-        dets, frame_w=640, frame_h=480,
-        required_ppe={"helmet": True, "vest": True, "boots": True,
-                      "gloves": True, "goggles": True},
+        dets,
+        frame_w=640,
+        frame_h=480,
+        required_ppe={"helmet": True, "vest": True, "boots": True, "gloves": True, "goggles": True},
     )
     assert workers[0].gloves_status == "VIOLATION"
 
@@ -137,13 +173,21 @@ def test_explicit_no_gloves_still_flags_closeup_worker():
 def test_full_body_worker_missing_gloves_still_flags():
     """A full-body worker (tall box) with no gloves detected must flag."""
     dets = [
-        {"label": "person", "violation": False, "confidence": 0.9,
-         "x1": 200, "y1": 20, "x2": 360, "y2": 440},  # w_h/w_w = 2.6
+        {
+            "label": "person",
+            "violation": False,
+            "confidence": 0.9,
+            "x1": 200,
+            "y1": 20,
+            "x2": 360,
+            "y2": 440,
+        },  # w_h/w_w = 2.6
     ]
     workers = associate_ppe_to_workers(
-        dets, frame_w=640, frame_h=480,
-        required_ppe={"helmet": True, "vest": True, "boots": True,
-                      "gloves": True, "goggles": True},
+        dets,
+        frame_w=640,
+        frame_h=480,
+        required_ppe={"helmet": True, "vest": True, "boots": True, "gloves": True, "goggles": True},
     )
     assert workers[0].gloves_status == "VIOLATION"
     assert any("glove" in v.lower() for v in workers[0].violations)
@@ -151,11 +195,15 @@ def test_full_body_worker_missing_gloves_still_flags():
 
 def test_nms_merge_detections():
     from src.core.detector import nms_merge_detections
-    boxes = np.array([
-        [10, 10, 100, 100],
-        [12, 12, 98, 98],    # overlapping duplicate helmet
-        [200, 200, 300, 300],  # separate vest
-    ], dtype=np.float32)
+
+    boxes = np.array(
+        [
+            [10, 10, 100, 100],
+            [12, 12, 98, 98],  # overlapping duplicate helmet
+            [200, 200, 300, 300],  # separate vest
+        ],
+        dtype=np.float32,
+    )
     scores = np.array([0.70, 0.90, 0.85], dtype=np.float32)
     labels = ["helmet", "helmet", "vest"]
 
@@ -182,6 +230,7 @@ def test_run_inference_with_accuracy_boost_and_crop_refinement():
 
 def test_performance_profile_boosted():
     from src.config.settings import PERFORMANCE_MODES
+
     assert "boosted" in PERFORMANCE_MODES
     boosted = PERFORMANCE_MODES["boosted"]
     assert boosted.augment is True

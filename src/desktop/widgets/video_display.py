@@ -1,4 +1,5 @@
 """Thread-safe, smooth hardware-accelerated video display canvas."""
+
 from __future__ import annotations
 
 from PySide6.QtCore import QRect, Qt

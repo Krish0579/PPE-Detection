@@ -3,6 +3,7 @@
 Replicates the exact industrial styling, typography, cards, sparklines,
 badges, and layout of the SAFE SIGHT AI platform with pleasant, crisp light theme.
 """
+
 from __future__ import annotations
 
 from src.config.settings import THEME_DARK, THEME_LIGHT
@@ -13,36 +14,40 @@ def get_safesight_css(theme_mode: str = "light") -> str:
     T = THEME_LIGHT if theme_mode == "light" else THEME_DARK
     is_light = theme_mode == "light"
 
-    panel_shadow = "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" if is_light else "0 2px 4px rgba(0,0,0,0.25)"
+    panel_shadow = (
+        "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)" if is_light else "0 2px 4px rgba(0,0,0,0.25)"
+    )
     metric_shadow = "0 1px 3px rgba(0,0,0,0.05)" if is_light else "none"
+    scrollbar_thumb = "#cbd5e1" if is_light else "#3f5157"
 
     return f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Manrope:wght@500;600;700;800&display=swap');
 
 :root {{
-    --bg: {T['bg']};
-    --panel: {T['panel']};
-    --sidebar: {T['sidebar']};
-    --text: {T['text']};
-    --heading: {T['heading']};
-    --muted: {T['muted']};
-    --secondary: {T['secondary']};
-    --line: {T['line']};
-    --green: {T['green']};
-    --green-soft: {T['green_soft']};
-    --red: {T['red']};
-    --red-soft: {T['red_soft']};
-    --amber: {T['amber']};
-    --amber-soft: {T['amber_soft']};
-    --blue: {T['blue']};
-    --blue-soft: {T['blue_soft']};
-    --hover: {T['hover']};
-    --input: {T['input']};
-    --border: {T['line']};
-    --card-bg: {T['panel']};
-    --text-secondary: {T['secondary']};
-    --bg-hover: {T['hover']};
+    --bg: {T["bg"]};
+    --panel: {T["panel"]};
+    --sidebar: {T["sidebar"]};
+    --text: {T["text"]};
+    --heading: {T["heading"]};
+    --muted: {T["muted"]};
+    --secondary: {T["secondary"]};
+    --line: {T["line"]};
+    --green: {T["green"]};
+    --green-soft: {T["green_soft"]};
+    --red: {T["red"]};
+    --red-soft: {T["red_soft"]};
+    --amber: {T["amber"]};
+    --amber-soft: {T["amber_soft"]};
+    --blue: {T["blue"]};
+    --blue-soft: {T["blue_soft"]};
+    --hover: {T["hover"]};
+    --input: {T["input"]};
+    --border: {T["line"]};
+    --card-bg: {T["panel"]};
+    --text-secondary: {T["secondary"]};
+    --bg-hover: {T["hover"]};
+    --scrollbar-thumb: {scrollbar_thumb};
 }}
 
 /* Completely hide Streamlit's default top header bar, deploy button, toolbar, and decorations */
@@ -119,7 +124,7 @@ aside[data-testid="stSidebar"]::-webkit-scrollbar-track {{
 .stMain::-webkit-scrollbar-thumb,
 section.main::-webkit-scrollbar-thumb,
 aside[data-testid="stSidebar"]::-webkit-scrollbar-thumb {{
-    background: #cbd5e1 !important;
+    background: var(--scrollbar-thumb) !important;
     border-radius: 4px !important;
 }}
 
@@ -628,9 +633,9 @@ section[data-testid="stSidebar"] .stSidebarContent {{
 [data-testid="stSidebar"] [data-testid="stRadioOption"][data-selected="true"],
 [data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:checked) {{
     background: var(--green-soft) !important;
-    border-color: rgba(8, 137, 108, 0.30) !important;
+    border-color: color-mix(in srgb, var(--green) 35%, transparent) !important;
     border-left: 4px solid var(--green) !important;
-    box-shadow: 0 2px 8px rgba(8, 137, 108, 0.08) !important;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--green) 12%, transparent) !important;
 }}
 
 /* Completely hide the circular radio bullet input across Streamlit and BaseWeb */
@@ -696,7 +701,7 @@ section[data-testid="stSidebar"] .stSidebarContent {{
     font-size: 15.5px !important;
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
     font-weight: 550 !important;
-    color: #475569 !important;
+    color: var(--secondary) !important;
     visibility: visible !important;
     opacity: 1 !important;
     line-height: 1.3 !important;
@@ -912,7 +917,7 @@ div[data-testid="stVideo"] video, .element-container video {{
 }}
 /* SIMULATION MODE banner */
 .demo-banner {{
-    background: linear-gradient(90deg, var(--amber-soft), #fff8e1);
+    background: var(--amber-soft);
     border: 1px solid var(--amber);
     border-radius: 6px;
     padding: 8px 16px;
@@ -922,6 +927,70 @@ div[data-testid="stVideo"] video, .element-container video {{
     color: var(--amber);
     letter-spacing: 0.5px;
     margin: 8px 0;
+}}
+
+/* BaseWeb popovers, selectbox menus, and listboxes follow the active theme */
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+[data-baseweb="select"] ul,
+div[role="listbox"] {{
+    background: var(--panel) !important;
+    background-color: var(--panel) !important;
+    border: 1px solid var(--line) !important;
+    color: var(--text) !important;
+}}
+
+div[role="listbox"] li,
+div[role="option"],
+div[role="option"] > div {{
+    color: var(--text) !important;
+}}
+
+div[role="option"]:hover,
+div[role="option"][aria-selected="true"] {{
+    background: var(--hover) !important;
+}}
+
+/* Respect reduced-motion preferences (X7): entrance, pulse, and shimmer animations off */
+@media (prefers-reduced-motion: reduce) {{
+    .metric-card, .panel, .alert-card, .worker-card, .zone-card {{
+        animation: none !important;
+        transition: none !important;
+    }}
+    .status-dot {{ animation: none !important; }}
+    .progress-track > div {{ transition: none !important; }}
+    [data-testid="stMain"], .stMain, section.main {{ scroll-behavior: auto !important; }}
+}}
+
+/* Responsive sidebar: relax the pinned 320px width on tablets and narrow windows (X5) */
+@media (max-width: 1280px) {{
+    [data-testid="stSidebar"],
+    section[data-testid="stSidebar"],
+    aside[data-testid="stSidebar"] {{
+        min-width: 272px !important;
+        width: 272px !important;
+        max-width: 292px !important;
+    }}
+}}
+
+@media (max-width: 900px) {{
+    [data-testid="stSidebar"],
+    section[data-testid="stSidebar"],
+    aside[data-testid="stSidebar"] {{
+        min-width: 232px !important;
+        width: 232px !important;
+        max-width: 252px !important;
+    }}
+    .block-container {{
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }}
+    [data-testid="stSidebar"] [data-testid="stRadioGroup"] label,
+    [data-testid="stSidebar"] [data-testid="stRadioOption"] {{
+        height: 44px !important;
+        min-height: 44px !important;
+        padding: 0 12px !important;
+    }}
 }}
 
 /* Responsive: metric cards on narrow viewports */
@@ -963,4 +1032,3 @@ div[data-testid="stTextInput"] > div > input {{
 
 def render_motion_bridge() -> None:
     """Retained for backwards-compatibility; animations are natively handled via GPU-accelerated CSS."""
-

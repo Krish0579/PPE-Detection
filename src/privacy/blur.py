@@ -4,6 +4,7 @@ Used when evidence snapshots leave the on-prem workstation (incident hand-off,
 email, audit ZIP). Blurring is applied to copies only; the sealed SQLite audit
 trail keeps the original capture.
 """
+
 from __future__ import annotations
 
 import logging

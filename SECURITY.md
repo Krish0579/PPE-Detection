@@ -28,3 +28,16 @@
 Trusted-checkpoint policy (no browser uploads / external paths in production), non-root
 container, TLS-terminating proxy, lockfile installs, SBOM + Trivy report, and a green
 `scripts/prod_readiness_check.py` gate. See `docs/MASTER_PLAN_PRODUCTION.md` §2.
+
+## Dependency CVE policy
+
+- CI runs a **blocking** `pip-audit` job against the locked dependency set on every
+  push. A red audit blocks release.
+- **torch / torchvision floor:** locked at `torch==2.14.0` / `torchvision==0.29.0`
+  (remediates 20+ CVEs disclosed against torch 2.2.2, incl. PYSEC-2024-259,
+  PYSEC-2025-41, PYSEC-2025-189..209, PYSEC-2026-1970, PYSEC-2026-2286). Never pin
+  below `torch>=2.14`; `requirements.txt` and `pyproject.toml` encode the floor.
+- Egress allowlists are matched host-aware (exact host + path-prefix), string-prefix
+  matching is not accepted, and credit-embedding URLs (`user@host`) are rejected.
+- If an advisory has no fix release, waive it explicitly in the CI audit command
+  (`pip-audit --ignore-vuln <ID>`) with justification recorded here. No silent waivers.

@@ -1,4 +1,5 @@
 """Consolidated incident alerts and safety violation cards matching Streamlit design."""
+
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
@@ -78,7 +79,9 @@ class AlertPanel(QFrame):
 
         if not incidents:
             clean_box = QFrame()
-            clean_box.setStyleSheet("background-color: #eaf7f1; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px;")
+            clean_box.setStyleSheet(
+                "background-color: #eaf7f1; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px;"
+            )
             cb_layout = QHBoxLayout(clean_box)
             clean_lbl = QLabel("🎉 All caught up! No active safety violations.")
             clean_lbl.setStyleSheet("color: #047857; font-size: 12.5px; font-weight: 600;")
@@ -112,7 +115,9 @@ class AlertPanel(QFrame):
             top.addWidget(w_name)
 
             btn_ack = QPushButton("Dismiss")
-            btn_ack.setStyleSheet("padding: 2px 8px; font-size: 10.5px; background-color: #ffffff; border: 1px solid #fca5a5; color: #991b1b;")
+            btn_ack.setStyleSheet(
+                "padding: 2px 8px; font-size: 10.5px; background-color: #ffffff; border: 1px solid #fca5a5; color: #991b1b;"
+            )
             btn_ack.clicked.connect(lambda _, n=p_name: self.incident_acknowledged.emit(n))
             top.addStretch()
             top.addWidget(btn_ack)

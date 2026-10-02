@@ -1,4 +1,5 @@
 """System Settings page — hardware, model, thresholds, and PPE policy."""
+
 from __future__ import annotations
 
 import streamlit as st
@@ -78,7 +79,9 @@ def render(ctx: AppContext) -> None:
                 except UploadValidationError as exc:
                     st.error(f"Model upload rejected: {exc}")
         else:
-            st.info("Browser model upload is disabled in production. Place reviewed checkpoints in `models/` during deployment.")
+            st.info(
+                "Browser model upload is disabled in production. Place reviewed checkpoints in `models/` during deployment."
+            )
 
         st.markdown("#### ⚡ AI Precision & Accuracy Engine")
         st.caption("Maximize detection accuracy and recall for small PPE (goggles, gloves, boots).")
@@ -144,25 +147,27 @@ def render(ctx: AppContext) -> None:
             c_conf_goggles = st.slider("Goggles Floor", 0.01, 0.50, float(STATE.class_conf.get("goggles", 0.04)), 0.01)
 
             custom_class_conf = dict(STATE.class_conf)
-            custom_class_conf.update({
-                "helmet": c_conf_helmet,
-                "no-helmet": c_conf_helmet,
-                "no_helmet": c_conf_helmet,
-                "vest": c_conf_vest,
-                "no-vest": c_conf_vest,
-                "no_vest": c_conf_vest,
-                "boots": c_conf_boots,
-                "no-boots": c_conf_boots,
-                "no_boots": c_conf_boots,
-                "gloves": c_conf_gloves,
-                "no-gloves": c_conf_gloves,
-                "no_gloves": c_conf_gloves,
-                "goggles": c_conf_goggles,
-                "no-goggle": c_conf_goggles,
-                "no_goggle": c_conf_goggles,
-                "no-goggles": c_conf_goggles,
-                "no_goggles": c_conf_goggles,
-            })
+            custom_class_conf.update(
+                {
+                    "helmet": c_conf_helmet,
+                    "no-helmet": c_conf_helmet,
+                    "no_helmet": c_conf_helmet,
+                    "vest": c_conf_vest,
+                    "no-vest": c_conf_vest,
+                    "no_vest": c_conf_vest,
+                    "boots": c_conf_boots,
+                    "no-boots": c_conf_boots,
+                    "no_boots": c_conf_boots,
+                    "gloves": c_conf_gloves,
+                    "no-gloves": c_conf_gloves,
+                    "no_gloves": c_conf_gloves,
+                    "goggles": c_conf_goggles,
+                    "no-goggle": c_conf_goggles,
+                    "no_goggle": c_conf_goggles,
+                    "no-goggles": c_conf_goggles,
+                    "no_goggles": c_conf_goggles,
+                }
+            )
 
         st.markdown("#### Mandatory PPE Policy Checks")
         st.caption("Select which items are mandatory for personnel safety compliance:")
@@ -172,11 +177,21 @@ def render(ctx: AppContext) -> None:
         st.session_state.setdefault("ppe_gloves", True)
         st.session_state.setdefault("ppe_goggles", True)
 
-        st.session_state.ppe_helmet = st.checkbox("Safety Helmet (Hardhat)", value=st.session_state.ppe_helmet, key="chk_helmet")
-        st.session_state.ppe_vest = st.checkbox("High-Visibility Safety Vest", value=st.session_state.ppe_vest, key="chk_vest")
-        st.session_state.ppe_boots = st.checkbox("Steel-Toe Safety Boots", value=st.session_state.ppe_boots, key="chk_boots")
-        st.session_state.ppe_gloves = st.checkbox("Protective Gloves", value=st.session_state.ppe_gloves, key="chk_gloves")
-        st.session_state.ppe_goggles = st.checkbox("Safety Goggles (Eye Protection)", value=st.session_state.ppe_goggles, key="chk_goggles")
+        st.session_state.ppe_helmet = st.checkbox(
+            "Safety Helmet (Hardhat)", value=st.session_state.ppe_helmet, key="chk_helmet"
+        )
+        st.session_state.ppe_vest = st.checkbox(
+            "High-Visibility Safety Vest", value=st.session_state.ppe_vest, key="chk_vest"
+        )
+        st.session_state.ppe_boots = st.checkbox(
+            "Steel-Toe Safety Boots", value=st.session_state.ppe_boots, key="chk_boots"
+        )
+        st.session_state.ppe_gloves = st.checkbox(
+            "Protective Gloves", value=st.session_state.ppe_gloves, key="chk_gloves"
+        )
+        st.session_state.ppe_goggles = st.checkbox(
+            "Safety Goggles (Eye Protection)", value=st.session_state.ppe_goggles, key="chk_goggles"
+        )
 
         req_ppe_dict = {
             "helmet": bool(st.session_state.ppe_helmet),
@@ -215,10 +230,10 @@ def render(ctx: AppContext) -> None:
 
         st.markdown("#### 💾 Evidence Disk Usage & Maintenance")
         st.caption("Monitor storage consumption and prune stale captures to prevent disk fill-up during long shifts")
-        
+
         # Get storage telemetry
         storage_info = EVIDENCE_MGR.get_storage_telemetry()
-        
+
         col_disk1, col_disk2, col_disk3 = st.columns(3)
         with col_disk1:
             st.metric("Files Stored", storage_info["file_count"])
@@ -226,11 +241,14 @@ def render(ctx: AppContext) -> None:
             st.metric("Disk Usage", f"{storage_info['total_size_mb']:.2f} MB")
         with col_disk3:
             st.metric("Oldest Capture", storage_info["oldest_capture"])
-        
+
         # Progress bar showing usage relative to max snapshots
         usage_pct = min(100, (storage_info["file_count"] / max(1, storage_info["max_snapshots_configured"])) * 100)
-        st.progress(usage_pct / 100, text=f"Snapshot retention: {storage_info['file_count']} / {storage_info['max_snapshots_configured']} ({usage_pct:.0f}%)")
-        
+        st.progress(
+            usage_pct / 100,
+            text=f"Snapshot retention: {storage_info['file_count']} / {storage_info['max_snapshots_configured']} ({usage_pct:.0f}%)",
+        )
+
         col_prune1, col_prune2 = st.columns([2, 1], vertical_alignment="bottom")
         with col_prune1:
             prune_hours = st.number_input(

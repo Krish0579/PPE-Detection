@@ -1,4 +1,5 @@
 """Real-time camera feed and live neural inference view matching original Streamlit design."""
+
 from __future__ import annotations
 
 import logging
@@ -116,7 +117,9 @@ class LiveFeedView(QWidget):
         pills_row.setSpacing(8)
 
         lbl_shift = QLabel("🗓️ TODAY, SHIFT 1")
-        lbl_shift.setStyleSheet("background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px;")
+        lbl_shift.setStyleSheet(
+            "background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 6px;"
+        )
         pills_row.addWidget(lbl_shift)
 
         self.badge_status = StatusBadge(status="live", text="● AI VISION ACTIVE")
@@ -179,7 +182,9 @@ class LiveFeedView(QWidget):
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(8)
 
-        self.video_display = VideoDisplayWidget(placeholder_text="Camera Standby · Click START below to begin real-time streaming")
+        self.video_display = VideoDisplayWidget(
+            placeholder_text="Camera Standby · Click START below to begin real-time streaming"
+        )
         left_layout.addWidget(self.video_display, 1)
 
         # Controls Bar (Red START button, Camera selector, Snapshot, Reset IDs)
@@ -252,7 +257,9 @@ class LiveFeedView(QWidget):
         obs_layout.setSpacing(14)
 
         self.badge_obs = QLabel("LIVE CAMERA INFERENCE")
-        self.badge_obs.setStyleSheet("background-color: #eaf7f1; border: 1px solid #a7f3d0; color: #047857; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px;")
+        self.badge_obs.setStyleSheet(
+            "background-color: #eaf7f1; border: 1px solid #a7f3d0; color: #047857; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 4px;"
+        )
         obs_layout.addWidget(self.badge_obs)
 
         self.lbl_counts_strip = QLabel("0 detections  ·  0 personnel  ·  0 violations")
@@ -372,11 +379,13 @@ class LiveFeedView(QWidget):
         for w in workers:
             if getattr(w, "has_active_violation", False):
                 missing_set = extract_missing_ppe_from_worker(w)
-                incidents.append({
-                    "person_name": f"Person #{getattr(w, 'worker_id', 1)}",
-                    "missing_ppe": missing_set,
-                    "zone": getattr(w, "zone", "Production Area"),
-                })
+                incidents.append(
+                    {
+                        "person_name": f"Person #{getattr(w, 'worker_id', 1)}",
+                        "missing_ppe": missing_set,
+                        "zone": getattr(w, "zone", "Production Area"),
+                    }
+                )
         self.alert_panel.update_alerts(incidents)
 
     @Slot(bool, str)
@@ -400,7 +409,9 @@ class LiveFeedView(QWidget):
             QMessageBox.information(self, "Snapshot", "No video frame currently available to capture.")
             return
 
-        violating_labels = [d.get("label", "violation") for d in state.get("detections", []) if "no_" in d.get("label", "")]
+        violating_labels = [
+            d.get("label", "violation") for d in state.get("detections", []) if "no_" in d.get("label", "")
+        ]
         workers = state.get("workers", [])
         active_person_id = 1
         for w in workers:
@@ -419,7 +430,11 @@ class LiveFeedView(QWidget):
             log_to_db=True,
         )
         if rec:
-            QMessageBox.information(self, "Snapshot Saved", f"Snapshot archived successfully for Worker #{active_person_id}:\n{rec.get('filename')}")
+            QMessageBox.information(
+                self,
+                "Snapshot Saved",
+                f"Snapshot archived successfully for Worker #{active_person_id}:\n{rec.get('filename')}",
+            )
         else:
             QMessageBox.warning(self, "Snapshot Failed", "Failed to compress or write snapshot to disk.")
 

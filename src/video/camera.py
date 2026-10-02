@@ -1,4 +1,5 @@
 """Direct OpenCV camera capture service with decoupled async inference for ultra-smooth 30+ FPS streaming."""
+
 from __future__ import annotations
 
 import logging
@@ -112,17 +113,13 @@ class OpenCVCameraManager:
 
             # 1. Start background inference thread
             self._infer_thread = threading.Thread(
-                target=self._infer_worker,
-                daemon=True,
-                name=f"OpenCVInferWorker-{device_index}"
+                target=self._infer_worker, daemon=True, name=f"OpenCVInferWorker-{device_index}"
             )
             self._infer_thread.start()
 
             # 2. Start high-frequency camera capture thread
             self._capture_thread = threading.Thread(
-                target=self._capture_worker,
-                daemon=True,
-                name=f"OpenCVCameraWorker-{device_index}"
+                target=self._capture_worker, daemon=True, name=f"OpenCVCameraWorker-{device_index}"
             )
             self._capture_thread.start()
             return True
@@ -157,6 +154,7 @@ class OpenCVCameraManager:
             if self._allow_simulation_fallback:
                 try:
                     from src.video.demo_feed import DemoShopfloorFeed
+
                     demo_feed = DemoShopfloorFeed()
                     is_simulated = True
                     sim_reason = (
@@ -263,10 +261,11 @@ class OpenCVCameraManager:
                         show_conf = getattr(state, "overlay_show_conf_pct", True) if state else True
                         show_pills = getattr(state, "overlay_show_status_pills", True) if state else True
 
-                        if pipe.last_workers:
+                        workers_list = pipe.last_workers or []
+                        if workers_list:
                             annotated = pipe.renderer.draw_worker_badges(
                                 annotated,
-                                pipe.last_workers,
+                                workers_list,
                                 show_labels=show_lbl,
                                 show_corner_brackets=show_brk,
                                 show_status_pills=show_pills,
@@ -275,11 +274,12 @@ class OpenCVCameraManager:
                             ppe_boxes = []
                             ppe_labels = []
                             ppe_scores = []
-                            for b, l, s in zip(pipe.last_boxes, pipe.last_labels, pipe.last_scores):
-                                if not is_person(l):
-                                    ppe_boxes.append(b)
-                                    ppe_labels.append(l)
-                                    ppe_scores.append(s)
+                            if pipe.last_boxes is not None and len(pipe.last_boxes) > 0:
+                                for b, l, s in zip(pipe.last_boxes, pipe.last_labels, pipe.last_scores):
+                                    if not is_person(l):
+                                        ppe_boxes.append(b)
+                                        ppe_labels.append(l)
+                                        ppe_scores.append(s)
                             if ppe_boxes:
                                 annotated = pipe.renderer.draw_detections(
                                     annotated,
@@ -290,7 +290,7 @@ class OpenCVCameraManager:
                                     show_corner_brackets=show_brk,
                                 )
                         else:
-                            if len(pipe.last_boxes) > 0:
+                            if pipe.last_boxes is not None and len(pipe.last_boxes) > 0:
                                 annotated = pipe.renderer.draw_detections(
                                     annotated,
                                     pipe.last_boxes,
@@ -300,8 +300,11 @@ class OpenCVCameraManager:
                                     show_corner_brackets=show_brk,
                                 )
 
-                        viol_now = sum(1 for w in pipe.last_workers if w.has_active_violation)
-                        work_now = len(pipe.last_workers)
+                        viol_now = sum(1 for w in workers_list if getattr(w, "has_active_violation", False))
+                        work_now = len(workers_list)
+                        if not work_now and hasattr(pipe, "last_detections") and pipe.last_detections:
+                            viol_now = sum(1 for d in pipe.last_detections if d.get("violation", False))
+                            work_now = sum(1 for d in pipe.last_detections if is_person(d.get("label", "")))
                         annotated = pipe.renderer.draw_telemetry_hud(
                             annotated,
                             fps=self._fps,
@@ -358,7 +361,9 @@ class OpenCVCameraManager:
                 try:
                     pipe.process_numpy_frame(frame)
                     inf_dt = max(time.perf_counter() - t0, 1e-6)
-                    self._infer_fps = 0.85 * self._infer_fps + 0.15 * (1.0 / inf_dt) if self._infer_fps > 0 else (1.0 / inf_dt)
+                    self._infer_fps = (
+                        0.85 * self._infer_fps + 0.15 * (1.0 / inf_dt) if self._infer_fps > 0 else (1.0 / inf_dt)
+                    )
                 except Exception as exc:
                     logger.debug("Inference error: %s", exc)
 

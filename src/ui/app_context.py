@@ -10,6 +10,7 @@ or lifecycle — theme switch, device switch, camera start/stop, model change,
 and destructive maintenance actions. Periodic refresh is done exclusively via
 ``st.fragment(run_every=...)`` scoped to the smallest possible DOM subtree.
 """
+
 from __future__ import annotations
 
 import importlib
@@ -125,14 +126,27 @@ def build_context() -> AppContext:
     half = device.startswith("cuda")
 
     active_model_path = st.session_state.custom_model_path
+    if not active_model_path or not os.path.isfile(str(active_model_path)):
+        fallback_path, _ = resolve_model_path(DEFAULT_MODEL_PATH)
+        st.session_state.custom_model_path = fallback_path
+        active_model_path = fallback_path
+
     model, load_err = _get_model(active_model_path, device, half)
+    if model is None and active_model_path != DEFAULT_MODEL_PATH:
+        fallback_path, _ = resolve_model_path(DEFAULT_MODEL_PATH)
+        st.session_state.custom_model_path = fallback_path
+        active_model_path = fallback_path
+        model, load_err = _get_model(active_model_path, device, half)
+
     class_names = get_class_names(model) if model is not None else []
     model_name = os.path.basename(active_model_path) if active_model_path else "Custom PPE Model"
 
     state: TelemetryState = st.session_state.telemetry_state
     pipeline_key = f"{active_model_path}_{device}_{half}_{_PIPELINE_KEY_VERSION}"
     current_pipe = st.session_state.get("pipeline")
-    renderer_sig = inspect.signature(getattr(getattr(current_pipe, "renderer", None), "render_8k_clarity_canvas", lambda: None))
+    renderer_sig = inspect.signature(
+        getattr(getattr(current_pipe, "renderer", None), "render_8k_clarity_canvas", lambda: None)
+    )
     is_renderer_stale = "show_labels" not in renderer_sig.parameters and not any(
         p.kind == inspect.Parameter.VAR_KEYWORD for p in renderer_sig.parameters.values()
     )
@@ -143,11 +157,15 @@ def build_context() -> AppContext:
         or is_renderer_stale
         or not hasattr(getattr(current_pipe, "renderer", None), "render_8k_clarity_canvas")
         or not hasattr(getattr(current_pipe, "renderer", None), "enhance_visual_clarity")
+        or getattr(current_pipe, "model", None) is None
     ):
         st.session_state.pipeline = VideoPipeline(model=model, state=state, device=device, half=half)
         st.session_state._pipeline_key = pipeline_key
 
     pipeline: VideoPipeline = st.session_state.pipeline
+    if model is not None and getattr(pipeline, "model", None) is not model:
+        pipeline.model = model
+
     if (
         not hasattr(pipeline.renderer, "render_8k_clarity_canvas")
         or not hasattr(pipeline.renderer, "enhance_visual_clarity")

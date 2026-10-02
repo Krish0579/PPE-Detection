@@ -3,6 +3,7 @@
 Provides a continuous animated shopfloor camera feed with workers, machines,
 and safety boundaries when a live physical camera is not connected.
 """
+
 from __future__ import annotations
 
 import math
@@ -14,7 +15,7 @@ import numpy as np
 
 class DemoShopfloorFeed:
     """Generates continuous realistic factory floor frames.
-    
+
     Uses real factory floor evidence frames from data/evidence/ when available
     so that custom YOLO neural weights detect real personnel and PPE items in real-time.
     """
@@ -46,8 +47,24 @@ class DemoShopfloorFeed:
 
         # Zone 2: Heavy Machinery Bay (Right - Restricted Zone with hazard stripes)
         cv2.rectangle(frame, (680, 140), (1240, 680), (35, 45, 80), 2)
-        cv2.putText(frame, "ZONE 2: HEAVY MACHINERY BAY (RESTRICTED)", (700, 175), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (100, 145, 235), 2)
-        cv2.putText(frame, "PPE REQUIRED: HELMET, VEST, BOOTS, GOGGLES", (700, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (140, 155, 160), 1)
+        cv2.putText(
+            frame,
+            "ZONE 2: HEAVY MACHINERY BAY (RESTRICTED)",
+            (700, 175),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.65,
+            (100, 145, 235),
+            2,
+        )
+        cv2.putText(
+            frame,
+            "PPE REQUIRED: HELMET, VEST, BOOTS, GOGGLES",
+            (700, 200),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.45,
+            (140, 155, 160),
+            1,
+        )
 
         # Draw yellow hazard demarcation lines
         for offset in range(680, 1240, 40):
@@ -73,17 +90,23 @@ class DemoShopfloorFeed:
         # Worker 1 (Assembly, Moving smoothly, Fully Compliant)
         w1_x = int(220 + 70 * math.sin(t * 0.7))
         w1_y = int(320 + 20 * math.cos(t * 0.7))
-        self._draw_simulated_person(frame, w1_x, w1_y, "Worker #01", helmet=True, vest=True, boots=True, gloves=True, goggles=True)
+        self._draw_simulated_person(
+            frame, w1_x, w1_y, "Worker #01", helmet=True, vest=True, boots=True, gloves=True, goggles=True
+        )
 
         # Worker 2 (Assembly, Working at bench, Fully Compliant)
         w2_x = 420
         w2_y = int(330 + 10 * math.sin(t * 0.5))
-        self._draw_simulated_person(frame, w2_x, w2_y, "Worker #02", helmet=True, vest=True, boots=True, gloves=True, goggles=True)
+        self._draw_simulated_person(
+            frame, w2_x, w2_y, "Worker #02", helmet=True, vest=True, boots=True, gloves=True, goggles=True
+        )
 
         # Worker 3 (Machine Bay, Near milling station, VIOLATION: Missing helmet & goggles!)
         w3_x = int(940 + 60 * math.sin(t * 0.6))
         w3_y = int(520 + 25 * math.cos(t * 0.6))
-        self._draw_simulated_person(frame, w3_x, w3_y, "Worker #03", helmet=False, vest=True, boots=True, gloves=False, goggles=False)
+        self._draw_simulated_person(
+            frame, w3_x, w3_y, "Worker #03", helmet=False, vest=True, boots=True, gloves=False, goggles=False
+        )
 
         return frame
 

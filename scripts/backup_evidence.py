@@ -4,6 +4,7 @@
 Example:
     python3 scripts/backup_evidence.py --retention-days 30 --backup-dir /var/backups/safesight
 """
+
 from __future__ import annotations
 
 import argparse
