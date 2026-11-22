@@ -7,7 +7,7 @@ ultralytics>=8.3,<9
 # (see SECURITY.md § Dependency CVE policy). Never lower this bound.
 torch>=2.14,<3
 torchvision>=0.29
-opencv-python>=4.10,<4.12
+opencv-python>=4.10,<5.2
 numpy>=1.26,<2
 pandas>=2.2,<4
 av>=12,<18
