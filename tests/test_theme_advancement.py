@@ -1,7 +1,7 @@
 """Phase 5 regression tests: theme advancement, keyboard shortcuts, and UX upgrades.
 
 Covers:
-- X1: keyboard-shortcut handler restored (``render_keyboard_shortcuts_script``)
+- Removed: dark-mode toggle and keyboard-shortcut layer (see TestRemovedChrome)
   with hidden hotkey buttons and input-safe/modifier-safe guards.
 - X2: live dark/light theme switch — ``get_safesight_css`` honors the
   ``theme_mode`` session key; no hardcoded light-only colors remain in the
@@ -19,7 +19,7 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
-from src.ui.components import render_empty_state, render_keyboard_shortcuts_script
+from src.ui.components import render_empty_state
 from src.ui.theme import get_safesight_css
 
 APP_PATH = Path(__file__).resolve().parent.parent / "app.py"
@@ -80,75 +80,67 @@ class TestThemeStylesheetAdvancement(unittest.TestCase):
         self.assertIn("min-width: 232px", css)
 
 
-class TestKeyboardShortcuts(unittest.TestCase):
-    def test_shortcut_script_handler_is_installed(self) -> None:
-        source = inspect.getsource(render_keyboard_shortcuts_script)
-        self.assertIn("keydown", source)
-        self.assertIn("'INPUT'", source)
-        self.assertIn("'TEXTAREA'", source)
-        self.assertIn("'SELECT'", source)
-        self.assertIn("ctrlKey", source)
-        self.assertIn("metaKey", source)
+class TestRemovedChrome(unittest.TestCase):
+    """Dark mode and keyboard shortcuts were removed per operator feedback.
 
-    def test_shortcut_script_targets_hidden_hotkey_buttons(self) -> None:
-        source = inspect.getsource(render_keyboard_shortcuts_script)
-        self.assertIn("__hk_nav_", source)
-        self.assertIn("__hk_cam", source)
-        self.assertIn("__hk_help", source)
+    These assert the removal actually took effect, so the features cannot
+    creep back in through a stray import or leftover widget.
+    """
 
-    def test_shortcut_script_binds_parent_document(self) -> None:
-        # Keydown events inside component iframes never propagate, so the
-        # handler must bind to the parent document where the operator types.
-        source = inspect.getsource(render_keyboard_shortcuts_script)
-        self.assertIn("window.parent", source)
-        self.assertIn("top.document", source)
+    @staticmethod
+    def _app_source() -> str:
+        return APP_PATH.read_text(encoding="utf-8")
 
-    def test_hotkey_buttons_drive_navigation_without_session_loss(self) -> None:
-        app = AppTest.from_file(str(APP_PATH), default_timeout=120)
-        app.run()
-        self.assertFalse(app.exception)
-        btn = app.button(key="hk_nav_2")
-        self.assertIsNotNone(btn)
+    def test_shortcut_component_is_gone(self) -> None:
+        from src.ui import components
 
-        # Click sets `_pending_nav` and triggers st.rerun(); the second run()
-        # consumes the pending value before the radio widget is instantiated.
-        btn.click().run()
-        self.assertFalse(app.exception)
-        self.assertEqual(app.session_state["workspace_navigation"], "Review footage")
-        self.assertEqual(app.sidebar.radio[0].value, "Review footage")
+        self.assertFalse(hasattr(components, "render_keyboard_shortcuts_script"))
+        self.assertNotIn("render_keyboard_shortcuts_script", components.__all__)
 
-    def test_help_dialog_opens_from_hotkey(self) -> None:
+    def test_app_renders_no_hotkey_buttons(self) -> None:
+        source = self._app_source()
+        for token in ("__hk_nav_", "__hk_cam", "__hk_help", "hk_nav_", "_pending_nav"):
+            with self.subTest(token=token):
+                self.assertNotIn(token, source)
+
+    def test_app_renders_no_shortcut_cheatsheet(self) -> None:
+        source = self._app_source()
+        self.assertNotIn("ops-kbd", source)
+        self.assertNotIn("Keyboard Shortcuts", source)
+
+    @staticmethod
+    def _rendered_keys(app: AppTest, kind: str) -> set[str]:
+        return {getattr(el, "key", None) for el in getattr(app, kind)}
+
+    def test_no_shortcut_hotkey_buttons_render(self) -> None:
         app = AppTest.from_file(str(APP_PATH), default_timeout=120)
         app.run()
         self.assertFalse(app.exception)
 
-        # Streamlit < 1.50 AppTest lacks `.dialog`; verify the button is
-        # present and clicking it does not raise an exception (the @st.dialog
-        # decorator opens the modal server-side).
-        btn = app.button(key="hk_help")
-        self.assertIsNotNone(btn)
-        btn.click().run()
-        self.assertFalse(app.exception)
+        keys = self._rendered_keys(app, "button")
+        self.assertFalse([k for k in keys if k and k.startswith("hk_")])
+        self.assertFalse([k for k in keys if k and k.startswith("__hk")])
 
-
-class TestThemeToggle(unittest.TestCase):
-    def test_theme_mode_session_default_is_light(self) -> None:
-        app = AppTest.from_file(str(APP_PATH), default_timeout=120)
-        app.run()
-        self.assertFalse(app.exception)
-        self.assertEqual(app.session_state["theme_mode"], "light")
-
-    def test_dark_mode_toggle_switches_theme(self) -> None:
+    def test_dark_mode_toggle_does_not_render(self) -> None:
         app = AppTest.from_file(str(APP_PATH), default_timeout=120)
         app.run()
         self.assertFalse(app.exception)
 
-        # Explicitly set the toggle value to True (dark) — bare `.run()` does
-        # not flip the widget value; `.set_value(True)` drives the desired
-        # state change through the app's `st.session_state["theme_mode"]` wiring.
-        app.toggle(key="theme_mode_toggle").set_value(True).run()
+        toggle_keys = self._rendered_keys(app, "toggle")
+        self.assertNotIn("theme_mode_toggle", toggle_keys)
+        labels = [t.label for t in app.toggle]
+        self.assertFalse([lbl for lbl in labels if lbl and "dark" in lbl.lower()])
+
+    def test_dark_control_room_theme_is_default_and_switchable(self) -> None:
+        app = AppTest.from_file(str(APP_PATH), default_timeout=120)
+        app.run()
         self.assertFalse(app.exception)
         self.assertEqual(app.session_state["theme_mode"], "dark")
+        theme = next(select for select in app.selectbox if select.label == "Display theme")
+        self.assertEqual(theme.value, "dark")
+        theme.select("light").run()
+        self.assertFalse(app.exception)
+        self.assertEqual(app.session_state["theme_mode"], "light")
 
 
 class TestThemedEmptyState(unittest.TestCase):

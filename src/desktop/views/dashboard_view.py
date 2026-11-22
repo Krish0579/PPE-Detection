@@ -25,7 +25,7 @@ from src.video.pipeline import VideoPipeline
 
 
 class DashboardView(QWidget):
-    """High-level industrial safety metrics and system telemetry dashboard."""
+    """High-level safety metrics and workspace telemetry dashboard."""
 
     def __init__(
         self,
@@ -58,7 +58,7 @@ class DashboardView(QWidget):
         lbl_title.setStyleSheet("font-size: 20px; font-weight: 800; color: #f8fafc;")
         title_vbox.addWidget(lbl_title)
 
-        lbl_sub = QLabel("Real-time shopfloor compliance telemetry, incident records, and computer vision status.")
+        lbl_sub = QLabel("Current workspace telemetry, incident records, and computer-vision status.")
         lbl_sub.setObjectName("headerSubtitle")
         lbl_sub.setStyleSheet("font-size: 12px; color: #94a3b8;")
         title_vbox.addWidget(lbl_sub)

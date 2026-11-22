@@ -12,3 +12,4 @@ maxUploadSize = 500
 [browser]
 serverAddress = "localhost"
 gatherUsageStats = false
+

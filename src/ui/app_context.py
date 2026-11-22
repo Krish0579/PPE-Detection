@@ -22,6 +22,7 @@ from typing import Any
 import streamlit as st
 
 import src.video.renderer as _rend_mod
+from src.config.runtime import load_runtime_config
 from src.config.settings import DEFAULT_AUDIO_ALERTS_ENABLED, DEFAULT_MODEL_PATH
 from src.core.model_manager import (
     available_devices,
@@ -32,7 +33,7 @@ from src.core.model_manager import (
 )
 from src.storage.evidence import EvidenceManager
 from src.video.camera import OpenCVCameraManager
-from src.video.demo_feed import DemoShopfloorFeed
+from src.video.demo_feed import DemoWorkspaceFeed
 from src.video.pipeline import TelemetryState, VideoPipeline
 
 # Hot-reload renderer module if running under a persistent server process with stale bytecode
@@ -46,10 +47,9 @@ from src.video.renderer import OverlayRenderer
 
 # Bump when VideoPipeline/renderer internals change so stale cached pipelines
 # from older code versions are rebuilt instead of monkey-patched.
-_PIPELINE_KEY_VERSION = "v8"
+_PIPELINE_KEY_VERSION = "v9"
 
 _SESSION_DEFAULTS: dict[str, Any] = {
-    "theme_mode": "light",
     "cam_stream_active": False,
     "audio_alarms_enabled": DEFAULT_AUDIO_ALERTS_ENABLED,
     "recent_inspections": [],  # List of (image, timestamp, worker_data)
@@ -78,9 +78,24 @@ def init_state() -> None:
     if "telemetry_state" not in st.session_state:
         st.session_state.telemetry_state = TelemetryState()
     if "evidence_manager" not in st.session_state:
-        st.session_state.evidence_manager = EvidenceManager()
+        runtime_cfg = load_runtime_config()
+        evidence_manager = EvidenceManager(
+            max_snapshots=runtime_cfg.max_snapshots,
+            max_db_events=runtime_cfg.max_db_events,
+        )
+        if runtime_cfg.maintenance_mode:
+            evidence_manager.seal("maintenance")
+        st.session_state.evidence_manager = evidence_manager
+    else:
+        # Environment configuration is the deployment authority. Reconcile the
+        # in-memory seal on rerun so maintenance mode cannot be display-only.
+        runtime_cfg = load_runtime_config()
+        if runtime_cfg.maintenance_mode:
+            st.session_state.evidence_manager.seal("maintenance")
+        elif st.session_state.evidence_manager.sealed_reason == "maintenance":
+            st.session_state.evidence_manager.unseal()
     if "demo_feed" not in st.session_state:
-        st.session_state.demo_feed = DemoShopfloorFeed()
+        st.session_state.demo_feed = DemoWorkspaceFeed()
     if "selected_device" not in st.session_state:
         st.session_state.selected_device = best_device()
     if "custom_model_path" not in st.session_state:
@@ -94,7 +109,7 @@ class AppContext:
 
     state: TelemetryState
     evidence: EvidenceManager
-    demo_feed: DemoShopfloorFeed
+    demo_feed: DemoWorkspaceFeed
     camera_manager: OpenCVCameraManager
     pipeline: VideoPipeline
     model: Any
@@ -159,7 +174,13 @@ def build_context() -> AppContext:
         or not hasattr(getattr(current_pipe, "renderer", None), "enhance_visual_clarity")
         or getattr(current_pipe, "model", None) is None
     ):
-        st.session_state.pipeline = VideoPipeline(model=model, state=state, device=device, half=half)
+        st.session_state.pipeline = VideoPipeline(
+            model=model,
+            state=state,
+            device=device,
+            half=half,
+            evidence_mgr=st.session_state.evidence_manager,
+        )
         st.session_state._pipeline_key = pipeline_key
 
     pipeline: VideoPipeline = st.session_state.pipeline

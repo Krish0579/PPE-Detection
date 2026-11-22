@@ -1,7 +1,7 @@
-"""Synthetic high-resolution shopfloor scene generator for simulation mode.
+"""Synthetic workspace scene generator for simulation mode.
 
-Provides a continuous animated shopfloor camera feed with workers, machines,
-and safety boundaries when a live physical camera is not connected.
+Provides a continuous animated camera feed with people, equipment, and zone
+boundaries when a live physical camera is not connected.
 """
 
 from __future__ import annotations
@@ -13,11 +13,11 @@ import cv2
 import numpy as np
 
 
-class DemoShopfloorFeed:
-    """Generates continuous realistic factory floor frames.
+class DemoWorkspaceFeed:
+    """Generates continuous realistic workspace frames.
 
-    Uses real factory floor evidence frames from data/evidence/ when available
-    so that custom YOLO neural weights detect real personnel and PPE items in real-time.
+    Uses local evidence frames when available so the configured model can
+    exercise the same detection path as a connected camera.
     """
 
     def __init__(self, width: int = 1280, height: int = 720):
@@ -83,7 +83,7 @@ class DemoShopfloorFeed:
         return frame
 
     def get_frame(self) -> np.ndarray:
-        """Render a realistic industrial shopfloor frame with animated workers."""
+        """Render a realistic workspace frame with animated people."""
         frame = self._bg.copy()
         t = time.time() - self.start_time
 
@@ -122,7 +122,7 @@ class DemoShopfloorFeed:
         gloves: bool = True,
         goggles: bool = True,
     ) -> None:
-        """Draw an industrial human figure with safety gear (helmet, vest, boots, gloves, goggles)."""
+        """Draw a simulated person with required equipment."""
         # Head / Helmet
         head_radius = 18
         head_center = (x, y - 55)
@@ -166,3 +166,7 @@ class DemoShopfloorFeed:
         boot_color = (35, 40, 45) if boots else (80, 80, 80)
         cv2.rectangle(frame, (x - 22, y + 75), (x - 2, y + 88), boot_color, -1)
         cv2.rectangle(frame, (x + 2, y + 75), (x + 22, y + 88), boot_color, -1)
+
+
+# Backwards-compatible name for existing integrations and saved test fixtures.
+DemoShopfloorFeed = DemoWorkspaceFeed

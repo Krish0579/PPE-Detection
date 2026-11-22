@@ -21,9 +21,14 @@ dependencies = [
   "pandas>=2.2,<4",
   "av>=12,<18",
   "PySide6>=6.6,<7",
+  "psutil>=5.9",
+  "reportlab>=4.0",
 ]
 
 [project.optional-dependencies]
+security = [
+  "argon2-cffi>=23.1",
+]
 dev = [
   "pytest>=8,<10",
   "pytest-cov>=5,<8",
@@ -48,18 +53,28 @@ extend-exclude = [".cache", "data", "runs", ".venv", ".agents", "awesome-freellm
 # - DTZ005/DTZ006: naive datetimes are intentional — all timestamps shown to
 #   operators and embedded in evidence filenames are local wall-clock time by design.
 "app.py" = ["BLE001", "S110", "DTZ005", "DTZ006", "SIM102"]
-"src/ui/**" = ["BLE001", "S110", "DTZ005", "DTZ006"]
+"src/ui/**" = ["BLE001", "S110", "DTZ005", "DTZ006", "RUF022"]
 "src/desktop/**" = ["BLE001", "S110", "DTZ005", "DTZ006", "RUF012", "TRY401"]
 "src/core/model_manager.py" = ["BLE001", "S110"]
 "src/core/ppe_associator.py" = ["BLE001", "S110"]
+"src/core/worker_tracker.py" = ["BLE001"]
 "src/storage/evidence.py" = ["BLE001", "DTZ006"]
+"src/storage/evidence_snapshots.py" = ["BLE001", "DTZ006"]
+"src/storage/pdf_builder.py" = ["BLE001", "S110", "DTZ005"]
 "src/storage/pdf_report.py" = ["BLE001", "S110", "DTZ005", "DTZ006"]
 "src/video/**" = ["BLE001", "S110", "DTZ005"]
-"tests/**" = ["BLE001", "S110"]
+"tests/**" = ["BLE001", "S110", "DTZ001", "DTZ005", "DTZ006"]
 "src/alerts/**" = ["BLE001"]
 "src/storage/backup.py" = ["BLE001"]
 "src/privacy/**" = ["BLE001", "S112"]
 "scripts/**" = ["BLE001"]
+"src/core/events.py" = ["BLE001"]
+"src/core/rules.py" = ["BLE001"]
+"src/integrations/**" = ["BLE001"]
+"src/observability/**" = ["BLE001"]
+"src/vision/**" = ["BLE001"]
+"src/security/passwords.py" = ["S324"]
+"src/reporting/**" = ["BLE001"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -71,7 +86,9 @@ branch = true
 
 [tool.coverage.report]
 show_missing = true
-# Ratchet: measured baseline 65.06% branch-inclusive (2026-09-26). Raise as coverage grows; never lower.
+# Ratchet: measured baseline 66.53% branch-inclusive (2026-10-02). Raise as coverage
+# grows; never lower. Was 65 while the measured value had fallen to 56%, which left
+# CI red — the ratchet is only meaningful if it is enforced against real numbers.
 fail_under = 65
 exclude_also = [
   "if __name__ == ['\"]__main__['\"]:",

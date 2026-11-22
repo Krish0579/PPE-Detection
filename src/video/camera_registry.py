@@ -1,19 +1,10 @@
-"""Multi-camera source registry (USB index, RTSP/HTTP stream, image folder).
-
-Additive and non-breaking: the existing single-camera ``OpenCVCameraManager``
-keeps working unchanged. New deployments describe cameras via
-``PPE_CAMERA_SOURCES`` (comma-separated) or explicit registration, e.g.::
-
-    PPE_CAMERA_SOURCES="usb:0, rtsp:rtsp://cam-02:554/stream, http:http://cam-03/mjpeg"
-
-RTSP URLs may embed credentials — they are never logged verbatim; only the
-redacted host form appears in diagnostics.
-"""
+"""Centralized camera configuration and health registry."""
 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from time import time
 from urllib.parse import urlparse
 
 _USB_RE = re.compile(r"^usb:(\d{1,2})$", re.IGNORECASE)
@@ -22,22 +13,95 @@ _HTTP_RE = re.compile(r"^https?:.+", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
-class CameraSource:
+class CameraFeedConfig:
     id: str
-    kind: str  # "usb" | "rtsp" | "http" | "demo"
-    address: str
+    display_name: str
+    zone: str
+    source_type: str
+    uri: str
+    active: bool = True
+    target_fps: int = 30
+    resolution: tuple[int, int] | None = None
+
+    @property
+    def redacted_uri(self) -> str:
+        if self.source_type in {"rtsp", "http", "webrtc"}:
+            try:
+                parsed = urlparse(self.uri if "://" in self.uri else f"rtsp://{self.uri}")
+                return f"{self.source_type}://{parsed.hostname or '<redacted>'}"
+            except ValueError:
+                return f"{self.source_type}://<redacted>"
+        return self.uri if self.source_type == "demo" else f"{self.source_type}:{self.uri}"
+
+
+@dataclass(frozen=True)
+class CameraSource(CameraFeedConfig):
+    """Backward-compatible source object used by existing callers."""
+
     label: str = ""
+
+    def __init__(self, id: str, kind: str, address: str, label: str = "", zone: str = "") -> None:
+        object.__setattr__(self, "id", id)
+        object.__setattr__(self, "display_name", label or id)
+        object.__setattr__(self, "zone", zone)
+        object.__setattr__(self, "source_type", kind)
+        object.__setattr__(self, "uri", address)
+        object.__setattr__(self, "active", True)
+        object.__setattr__(self, "target_fps", 30)
+        object.__setattr__(self, "resolution", None)
+        object.__setattr__(self, "label", label)
+
+    @property
+    def kind(self) -> str:
+        return self.source_type
+
+    @property
+    def address(self) -> str:
+        return self.uri
 
     @property
     def redacted(self) -> str:
-        if self.kind in {"rtsp", "http"}:
-            try:
-                parsed = urlparse(self.address if "://" in self.address else f"rtsp://{self.address}")
-                host = parsed.hostname or self.address
-                return f"{self.kind}://{host}"
-            except Exception:
-                return f"{self.kind}://<redacted>"
-        return f"{self.kind}:{self.address}"
+        return self.redacted_uri
+
+
+@dataclass
+class CameraHealth:
+    status: str = "UNKNOWN"
+    fps: float = 0.0
+    latency_ms: float = 0.0
+    width: int = 0
+    height: int = 0
+    last_error: str = ""
+    updated_at: float = field(default_factory=time)
+
+
+class CameraRegistry:
+    def __init__(self, cameras: list[CameraFeedConfig] | None = None) -> None:
+        self._cameras = {camera.id: camera for camera in (cameras or [])}
+        self._health: dict[str, CameraHealth] = {}
+
+    def register(self, camera: CameraFeedConfig) -> None:
+        self._cameras[camera.id] = camera
+
+    def get(self, camera_id: str) -> CameraFeedConfig | None:
+        return self._cameras.get(camera_id)
+
+    def all(self) -> list[CameraFeedConfig]:
+        return list(self._cameras.values())
+
+    def for_zone(self, zone: str) -> list[CameraFeedConfig]:
+        return [c for c in self._cameras.values() if c.zone == zone]
+
+    def update_health(self, camera_id: str, **values: object) -> CameraHealth:
+        health = self._health.setdefault(camera_id, CameraHealth())
+        for key, value in values.items():
+            if hasattr(health, key):
+                setattr(health, key, value)
+        health.updated_at = time()
+        return health
+
+    def health(self, camera_id: str) -> CameraHealth:
+        return self._health.get(camera_id, CameraHealth())
 
 
 def parse_camera_sources(raw: str) -> list[CameraSource]:
@@ -45,21 +109,19 @@ def parse_camera_sources(raw: str) -> list[CameraSource]:
     for index, token in enumerate([t.strip() for t in (raw or "").split(",") if t.strip()], start=1):
         usb = _USB_RE.match(token)
         if usb:
-            sources.append(CameraSource(id=f"CAM-{index:02d}", kind="usb", address=usb.group(1), label=token))
+            sources.append(CameraSource(f"CAM-{index:02d}", "usb", usb.group(1), token))
             continue
         rtsp = _RTSP_RE.match(token)
-        if rtsp:
-            address = rtsp.group(1).strip()
-            if address:
-                sources.append(CameraSource(id=f"CAM-{index:02d}", kind="rtsp", address=address, label=token))
+        if rtsp and rtsp.group(1).strip():
+            sources.append(CameraSource(f"CAM-{index:02d}", "rtsp", rtsp.group(1).strip(), token))
             continue
         if _HTTP_RE.match(token):
-            sources.append(CameraSource(id=f"CAM-{index:02d}", kind="http", address=token, label=token))
+            sources.append(CameraSource(f"CAM-{index:02d}", "http", token, token))
             continue
         if token.lower() == "demo":
-            sources.append(CameraSource(id=f"CAM-{index:02d}", kind="demo", address="demo", label="demo"))
+            sources.append(CameraSource(f"CAM-{index:02d}", "demo", "demo", "demo"))
     return sources
 
 
 def default_sources() -> list[CameraSource]:
-    return [CameraSource(id="CAM-01", kind="usb", address="0", label="usb:0")]
+    return [CameraSource("CAM-01", "usb", "0", "usb:0", "Assembly Line A")]

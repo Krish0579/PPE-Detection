@@ -1,136 +1,130 @@
-# SAFE SIGHT AI — Production & Industrial Readiness Plan (v2, refined)
+# SAFE SIGHT AI — Production Readiness Roadmap
 
-> Refined 2026-09-27 from a deeper codebase audit at commit `23790a4`
-> (156 tests green, ruff clean, coverage ~69%). Supersedes the v1 advancement
-> plan in this file. Phases 0–5 (bugs, structure, UX, storage, hardening) are
-> complete — see `docs/IMPROVEMENT_PLAN.md`.
+**Audit date:** 2026-10-05
+**Status:** Current implementation review and execution plan
+**Primary release target assumed:** A single-site, on-premise browser workspace. Keep the PySide6 desktop client as a separate supported surface only if it has a committed operator need.
 
----
+This replaces the older current-state audit in this file. Use this roadmap as the execution source of truth; older production plans and hardening notes remain reference material until they are reconciled.
 
-## 1. Readiness Definitions
+## Executive assessment
 
-**Production ready** — secure by default, observable, recoverable, deployable,
-monitored, documented, and regression-tested.
+SAFE SIGHT AI has a substantial working foundation: Python, Streamlit and PySide6 clients, YOLO inference, camera and video review, an operator-focused browser shell, SQLite evidence storage, retention and integrity checks, deployment examples, and CI quality gates.
 
-**Industrial ready** — runs 24/7 on a plant floor: multi-camera RTSP ingestion,
-role-separated shift operations, evidence an operator can defend in an audit,
-alerts that survive network blips, air-gapped install, known hardware sizing,
-graceful degradation, and a maintenance mode.
+It is **not ready for a shared industrial pilot yet**. The largest blockers are not missing dashboard features. They are the trust and operations gaps underneath them: authentication is optional by default, role checks are not enforced at the incident action boundary, live detections do not create records in the incident repository, camera recovery and notification queues are not connected to the runtime, and the current benchmark prints fixed sample numbers.
 
-### 1.1 Current-state scorecard (verified in this audit)
+The strongest next step is to make one complete safety workflow trustworthy: a confirmed detection becomes a durable incident with linked evidence; the correct signed-in person can acknowledge and resolve it; operators can see camera and model health; and the record can be recovered and audited after a restart.
 
-| Area | State | Evidence |
-|------|-------|----------|
-| CI/CD quality gates | ✅ strong | lint-test, dep-audit, docker-build, sbom+trivy jobs |
-| Deployment artifacts | ✅ present | `config/prod/` compose, nginx, prometheus, k8s examples |
-| Secure-by-default trust flags | ✅ done | `src/config/runtime.py` |
-| Evidence retention & DB index | ✅ done | `evidence.py` prune/backfill |
-| **RBAC enforcement** | ❌ dead code | `auth.py:30-38` `can()`/`ROLE_PERMISSIONS` never called |
-| **Login hardening** | ❌ absent | no throttling, no session expiry/idle timeout |
-| **Alert delivery reliability** | ❌ single-shot | `webhooks.py:105` — no retry/queue |
-| **Health endpoint** | ❌ dead code | `health.py:12` `build_health_payload` never called |
-| **Prometheus metrics** | ❌ absent | nothing to scrape; example config exists |
-| **Evidence integrity** | ❌ absent | no SHA-256 per artifact/chain |
-| **Camera resilience** | ❌ partial | error surfaced, no reconnect/watchdog |
-| **DB migrations / restore drill** | ❌ absent | ad-hoc schema changes; restore unscripted |
-| **Inference perf tooling** | ❌ absent | no benchmark, no ONNX, static frame-skip |
-| **Multi-camera / RTSP UI** | ❌ unused | `camera_registry.py` parsed but not rendered |
-| **Analytics surfaces** | ❌ unused | floor map / safety analytics / productivity built, never rendered |
-| **Zones** | ❌ capacity-only | no intrusion/dwell alerts |
+## Audit basis and limits
 
----
+- The repository is a Python project. The pasted project summary describes TypeScript, but the checked-in README and pyproject identify Python, Streamlit, PySide6, OpenCV, Ultralytics YOLO, and SQLite.
+- The working tree already contained more than 100 changed or untracked entries before this document was edited. Findings describe that in-progress tree; they do not attribute those changes to this review. Preserve and reconcile them before producing a release build.
+- The offline readiness check completed with **0 blocking findings and 0 warnings**. It confirms a small set of files, imports, secure model-path flags, and a temporary evidence-store round trip. It does not verify the end-to-end incident flow, configured authentication, role enforcement, external health endpoints, alert persistence, field accuracy, or backup restoration.
+- I reviewed source and deployment configuration. I did not run the test suite, build a container, or inspect a live browser/camera session. The local Docker command could not validate Compose configuration because the Compose subcommand is unavailable.
+- The Ruflo security CLI was not cached and network access was restricted, so this review used source inspection and the repository readiness check rather than that scanner.
 
-## 2. Workstreams
+## Current-state scorecard
 
-Each item: **verified gap → work → files → acceptance → tests**.
+| Area | Assessment | Evidence and consequence |
+|---|---|---|
+| Product and detection | Strong prototype foundation; field performance unproven | A local checkpoint and image, video, and camera paths exist. There is no source-bound benchmark or site-specific per-class accuracy report. |
+| Browser UI | Strong design foundation; operator workflow is incomplete | Command Center, Live Feed, Incidents, Reports, Evidence, Review, Settings, and Health routes exist with dark/light styling and shared components. The Camera Wall module is not in the active navigation. |
+| Incident lifecycle | Critical integration gap | The incident repository and state machine exist, but source review found no production call that sends detector events to IncidentManager.ingest. The Incidents and Reports pages read a separate SQLite incident store, so they can remain empty while the live detector reports violations. |
+| Access control | Production blocker for shared deployments | Authentication defaults off. Password verification in the active auth module uses unsalted SHA-256. Permission matrices exist, but page actions do not call them; incident transitions receive hard-coded actor roles, and the page constructs the manager without an authorizer. |
+| Camera resilience | Partial, not operationally integrated | A reconnect state machine and camera registry exist, but they are not wired into the active capture lifecycle. The active OpenCV manager starts one device index; per-camera RTSP health and recovery need an end-to-end implementation. |
+| Alerts | Useful components, no durable delivery guarantee | Dispatchers have retries, but their queues are in memory. A process restart loses queued work; a full queue can drop a notification. |
+| Evidence and recovery | Good primitives; release workflow still needs proof | Evidence hashes, an event chain, retention, backup helpers, and a restore script exist. A versioned migration path and a rehearsed, safe restore procedure are not established. A separate audit-log module is not connected to all consequential actions. |
+| Health and metrics | Visible in the UI; not a service contract | Health payload and metrics modules exist, but there is no application route exposing readiness or Prometheus metrics. The container check uses Streamlit's generic health URL, which does not prove model, camera, or evidence-store readiness. |
+| Deployment | Good artifacts; Compose paths corrected, runtime validation pending | The image is non-root and CI builds it. This review corrected the production Compose build context, root .env path, and root models/ mount. The Compose subcommand is unavailable here, so config validation and an actual Compose build remain release gates. The current CI Trivy scan is non-blocking and SBOM generation is best-effort. |
+| Performance evidence | Not trustworthy yet | scripts/benchmark.py assigns fixed FPS, latency, and queue values instead of measuring inference. Do not use its output for sizing or customer claims. |
+| Claims and reporting | Copy needs correction | The Reports page calls downloads “certified” although the product record says no certification is held. Report period and author defaults should come from the operator's selected period and authenticated identity, not fixed example values. |
+| Documentation | Duplicated plans have drifted | Several production plans overlap, and older ones describe gaps that now have code or omit newer integration risks. This file is the current execution plan. |
 
-### W1 — Security, Access & Evidence Integrity *(production trust)*
+## Release scope
 
-| ID | Gap (verified) | Work | Files | Acceptance | Tests |
-|----|----|------|-------|------------|-------|
-| W1.1 | RBAC defined, never enforced; only `operator` exists; destructive ops ungated | Enforce `can()` at every consequential action (evidence delete, ZIP export, clear session, model upload/switch, settings write); admin role via separate `PPE_ADMIN_PASSWORD_SHA256`; supervisor read-only on evidence; UI hides/disables what the role cannot do | `src/security/auth.py`, `app.py`, `src/ui/pages/*` | operator cannot reach destructive actions; admin can; permissions table documented | unit: `can()` matrix; AppTest: role-gated button visibility |
-| W1.2 | No throttling; sessions never expire | Login throttling (per-process exponential backoff after N failures) + session expiry (`PPE_SESSION_TTL_MIN`, default 480) + idle re-auth; constant-time compare already via `hmac.compare_digest` — verify | `src/security/auth.py`, `app.py` | lockout after 5 failures for backoff window; expired session forces re-login | unit: backoff table, expiry math; AppTest: gate re-locks |
-| W1.3 | Evidence has no tamper evidence | SHA-256 per snapshot at write (column + filename manifest); event rows hash-linked (`sha256(prev_hash + payload)`) making silent edits detectable; `scripts/verify_evidence.py` verifies chain offline | `src/storage/evidence.py`, `scripts/verify_evidence.py` | chain verification passes on fresh DB; detects a tampered row/byte | unit: chain verify + tamper detection |
-| W1.4 | No maintenance mode | `PPE_MAINTENANCE=1` → banner + inference paused + evidence sealed (no writes), UI still reachable for supervisors; readiness-gate check | `src/config/runtime.py`, `app.py` | mode engages without restart; no writes while sealed | unit: config parse + seal behavior |
+Start with one supported deployment: the browser application on a private site network behind a configured reverse proxy. Decide and document the supported camera count, stream types, hardware profile, retention window, and expected operating hours before claiming site readiness.
 
-### W2 — Reliability & Alerting *(industrial uptime)*
+The desktop client can remain available for local evaluation, but it should not be treated as production-equivalent until identity, permissions, incident actions, evidence exports, and recovery behavior match the browser client. Defer multi-tenant hosting, cross-camera identity tracking, a public inference API, and accelerator conversions until a measured pilot justifies them.
 
-| ID | Gap | Work | Files | Acceptance | Tests |
-|----|----|------|-------|------------|-------|
-| W2.1 | Webhooks single-shot | Alert outbox: events enqueue to SQLite (`alert_outbox` table); worker thread posts with exponential backoff (3 tries), marks delivered/failed; failed rows visible + replayable in Settings; DLQ after final failure | `src/alerts/outbox.py` (new), `webhooks.py`, `evidence.py`, `src/ui/pages/system_settings.py` | transient failure → alert still delivered; replay works; no alert loss over 100-event burst | unit: enqueue/retry/replay; integration: fake urlopen failures |
-| W2.2 | No camera watchdog / RTSP reconnect | Stream health watchdog: consecutive-failure detection, exponential reconnect backoff, per-camera status (OK/DEGRADED/DEAD) surfaced; auto-restart of capture worker; honest badges | `src/video/camera.py`, `camera_registry.py` | simulated stream death → auto-recovery ≤ 30 s; status correct in UI | unit: fake-clock backoff/reconnect state machine |
-| W2.3 | No migration path | Versioned schema migrations (`PRAGMA user_version` + ordered migration scripts) applied on open; current ad-hoc `_init_db`/backfill folded in as migration 001 | `src/storage/evidence.py`, `src/storage/migrations.py` (new) | fresh + aged DB both open cleanly; migration idempotent, runs once | unit: fresh/aged/already-migrated DBs |
-| W2.4 | Restore unvalidated | `scripts/restore_evidence.py` (restore into temp dir, verify DB opens + snapshot hashes match) + documented restore drill in runbook | `scripts/restore_evidence.py` (new), `docs/PRODUCTION_RUNBOOK.md` | drill script round-trips a backup end-to-end | unit: backup→restore→verify round-trip |
+## Implementation phases
 
-### W3 — Observability & Operability *(see the system)*
+### Phase 0 — Stabilize the release baseline
 
-| ID | Gap | Work | Files | Acceptance | Tests |
-|----|----|------|-------|------------|-------|
-| W3.1 | Health payload dead code | Expose `/healthz` route: run lightweight Streamlit server-served health via `st.pages` static route or a tiny sidecar thread serving the payload (model, device, mode, uptime, db ok); k8s liveness/readiness wired to it | `src/observability/health.py`, `config/prod/k8s-deployment.example.yaml` | `GET /healthz` returns payload 200; k8s example uses it | integration: boot server, assert payload |
-| W3.2 | No metrics | Prometheus text exporter: fps, inference ms, detections/person/violations counters, alert queue depth, camera states, snapshot count — scraped from telemetry state; port gated behind `PPE_ENABLE_METRICS` (default off, secure-by-default) | `src/observability/metrics.py` (new), `config/prod/prometheus.example.yml` | `curl /metrics` returns valid exposition; example scrape config matches | unit: exposition format; integration: endpoint up |
-| W3.3 | No drift monitor | `scripts/drift_report.py`: weekly per-class confidence/count distributions from SQLite vs 30-day baseline; flags shifts; cron/launchd examples | `scripts/drift_report.py` (new) | flags synthetic drift in fixture DB; report human-readable | unit: drift detector on shifted vs stable fixtures |
-| W3.4 | Coverage ratchet idle at 68 | Raise `fail_under` 68 → 74 after W1–W3 tests; 80 after W5 | `pyproject.toml` | CI green at new floor | CI itself |
+1. Review the existing local changes as a single integration effort. Record the exact source revision and model digest used for validation; do not discard or overwrite in-progress files.
+2. Confirm the first supported deployment profile and which client is in scope.
+3. The production Compose paths now target the repository-root Dockerfile, .env, and models/. Add a configuration-only check and an actual Compose build to release validation; neither was runnable in this review environment.
+4. Replace the placeholder benchmark with measurements from the real capture and inference pipeline. Record hardware, model digest, input size, warm-up, frame loss, p50/p95 latency, throughput, CPU, memory, and queue depth.
+5. Establish an initial site validation set and have the safety owner set per-class recall, precision, and false-alert limits before any pilot. Do not invent generic accuracy claims.
 
-### W4 — Inference Performance & Sizing *(measure → optimize)*
+**Exit gate:** The intended deployment can be configured from documented files, its image can be built from a clean source snapshot, and the benchmark reports measured values tied to that snapshot.
 
-| ID | Gap | Work | Files | Acceptance | Tests |
-|----|----|------|-------|------------|-------|
-| W4.1 | No benchmark truth | `scripts/benchmark_inference.py`: cold start, warm FPS, p50/p95 latency × perf profile × backend; JSON to `data/benchmarks/`; `make benchmark` | `scripts/benchmark_inference.py` (new), `Makefile` | reproducible offline run with commit metadata | smoke: runs on synthetic frames |
-| W4.2 | Torch-only inference | ONNX export + runtime path; `PPE_BACKEND=auto\|torch\|onnx` (auto = benchmark winner, persisted); parity guard | `src/core/detector.py`, `model_manager.py`, `requirements.txt` | box IoU ≥ 0.99 vs torch on evidence frames; speed delta recorded | unit: parity on fixtures |
-| W4.3 | Static frame skip | Adaptive skip: skip only when measured inference ms exceeds capture budget; hysteresis to avoid flapping | `src/video/camera.py`, `settings.py` | target FPS held under load; no drops when idle | unit: fake-clock scheduler |
-| W4.4 | Unbounded memory paths | Ring buffer (≤3 frames), explicit release after encode, single warmup, thread caps | `camera.py`, `pipeline.py` | flat RSS across 10-min simulated run | soak: RSS trend assert |
-| W4.5 | No hardware sizing guidance | Benchmark-driven sizing table (CAMs × resolution → CPU/GPU profile) in docs; refreshed by benchmark output | `docs/SIZING.md` (new) | table cites measured numbers only | doc lint |
+### Phase 1 — Make incidents and permissions trustworthy
 
-### W5 — Capability Advancement *(industrial features)*
+1. Define one event contract from confirmed detection through incident, evidence, audit, notification, and report. Ingest events only after the existing debounce/confirmation policy; deduplicate repeated frames into the same open incident.
+2. Connect the video pipeline to the persistent incident manager. Store the model/checkpoint digest, camera, zone, timestamps, class, confidence, evidence references, and review status with each incident.
+3. Enforce authorization inside the service that changes incident state, evidence, policy, model, and exports. UI hiding is only a usability layer. Bind every action to the authenticated user and actual role; remove hard-coded operator and safety_officer actors.
+4. For any shared or network deployment, require authentication at startup. Use the existing modern password-hashing support or an approved identity provider; do not use unsalted SHA-256 for stored passwords. Keep a documented single-station mode only for a physically controlled workstation.
+5. Escape every database- or user-derived value before rendering custom HTML. Remove unsupported “certified” wording and describe reports as operational records unless certification is independently obtained.
 
-| ID | Gap | Work | Files | Acceptance | Tests |
-|----|----|------|-------|------------|-------|
-| W5.1 | Registry unused in UI | Multi-camera grid (usb/rtsp/http/demo): per-camera tiles, status from W2.2, violation chips, focus mode; SIM honesty per tile | `src/ui/pages/live_feed.py`, `camera_registry.py` | 0/N cameras render; per-tile status; AppTest clean | AppTest + unit registry |
-| W5.2 | Analytics never rendered | "Operations Dashboard" page: floor map, safety analytics, productivity view + persistent KPIs from SQLite; shift summary | `src/ui/pages/operations_dashboard.py` (new), `app.py`, desktop nav parity | renders with empty store; data from persisted trail | AppTest |
-| W5.3 | Zones capacity-only | Restricted-zone entry alert (debounced once per entry), per-worker dwell time, explicit over-capacity events; distinct webhook payload | `ppe_associator.py`, `pipeline.py`, `webhooks.py` | entry fires once; dwell accumulates; capacity event logged | unit: entry/dwell/capacity |
-| W5.4 | Webhook-only alerting | Optional SMTP digest channel (`PPE_SMTP_*`), off by default, evidence thumbnails, env-only secrets | `src/alerts/email.py` (new) | disabled unless configured; digest renders | unit: fake SMTP |
-| W5.5 | No model A/B path | Image Analysis: two trusted checkpoints side-by-side (overlay diff + metric table) for validated upgrades | `image_analysis.py`, `model_manager.py` | graceful single-model fallback; diff correct | unit + AppTest |
-| W5.6 | No headless API | Opt-in FastAPI (`PPE_ENABLE_API=true`): `/healthz`, `/version`, `/infer` (image→workers), `/events`; same validation + trust policy | `src/api/` (new), `Makefile`, `Dockerfile` | off by default; endpoints + rejection paths covered | API tests |
+**Exit gate:** A detector event appears in the persistent incident list, survives restart, links to verifiable evidence, and can only be acknowledged, resolved, or dismissed by an authorized role with a recorded reason and real actor identity.
 
-### W6 — Compliance & Release Gates *(ship it safely)*
+### Phase 2 — Keep cameras and alerts alive through failures
 
-| ID | Gap | Work | Files | Acceptance |
-|----|----|------|-------|------------|
-| W6.1 | Readiness gate partial | Extend `prod_readiness_check.py`: auth configured in prod, maintenance flag documented, backup freshness, evidence chain verifies, metrics opt-in documented | `scripts/prod_readiness_check.py` | exit 2 on missing prod-critical config |
-| W6.2 | Upgrade/rollback undefined | Versioned release procedure doc: tag → benchmark → readiness gate → deploy → rollback (prior image + DB migration-safe check) | `docs/RELEASE_PROCEDURE.md` (new) | dry-run documented against compose |
-| W6.3 | Desktop drift | Share theme tokens + nav parity with web; document deliberate gaps | `src/desktop/` | desktop boots; parity checklist in doc |
-| W6.4 | Legal/privacy guardrails | Keep AGPL + DPIA gates visible in release checklist; no claims of certification | `docs/RELEASE_PROCEDURE.md` | checklist enforced at release |
+1. Connect camera registry and reconnect state to actual camera workers. Show per-camera connected, delayed, reconnecting, failed, and simulated states with the last-frame time.
+2. Make stale video unmistakable. Stop presenting the last good image as live when frames stop arriving; show the failure and recovery action on both the Camera Wall and incident context.
+3. Use a bounded durable alert outbox with idempotency, retry schedule, delivery state, failure visibility, and operator replay. Track queue-full drops and do not report an alert as delivered before its destination confirms receipt.
+4. Keep the real camera count, stream types, and hardware limits within measured operating capacity. A demo stream must remain explicitly marked as simulated in every page and export.
 
----
+**Exit gate:** Simulated camera loss is visible within the configured stale threshold, recovery follows a bounded retry policy, queued alerts survive an application restart, and no page presents stale or simulated imagery as live.
 
-## 3. Execution Milestones
+### Phase 3 — Make evidence recoverable and privacy-governed
 
-| Milestone | Contents | Rationale | Est. effort |
-|-----------|----------|-----------|-------------|
-| **M1 — Trust** | W1.1–W1.4, W2.1 | Security + alert reliability first: nothing else matters if evidence/alerts can't be trusted | ~2 sessions |
-| **M2 — Visibility** | W3.1–W3.3, W2.3–W2.4, W4.1 | Health, metrics, migrations, restore drill, and the benchmark baseline before optimizing | ~2 sessions |
-| **M3 — Speed & Scale** | W4.2–W4.5, W2.2 | Optimize against W4.1 numbers; watchdog for 24/7 capture | ~2 sessions |
-| **M4 — Capability** | W5.1–W5.6, W6.1–W6.4, W3.4 (ratchet→80) | Features on a trustworthy, measured foundation; release gates last | ~3 sessions |
+1. Add ordered, versioned database migrations for both evidence and incident data. Test fresh databases and upgrades from each supported schema version.
+2. Link incident transitions, evidence deletion/export, policy changes, and model changes to the tamper-evident audit trail. Anchor integrity outside the writable event database when the deployment needs stronger evidence against a local administrator.
+3. Run scheduled backups for the database and referenced evidence files. Restore into a staging location, verify database integrity and file hashes, then promote through an atomic, documented procedure.
+4. Define retention and access rules with the site. Verify deletion covers files, indexes, exports, backups, and temporary uploads; document face blurring and its limits. Restrict support bundles to approved fields and redact credentials and worker imagery by default.
 
-Dependencies: W2.1 before W5.3/W5.4 (outbox carries new alert types) · W4.1 before W4.2/W4.5 · W2.2 before W5.1 (per-camera status) · W2.3 before any schema-adding item.
+**Exit gate:** A restore drill reproduces a known incident and its evidence on a clean target; integrity verification detects altered or missing files; retention and export behavior match the signed site policy.
 
-## 4. Definition of Done (every milestone)
+### Phase 4 — Make production state observable and releasable
 
-- `python3 -m pytest tests -q` green; `ruff check .` + `ruff format --check` clean
-- Coverage ratchet never lowered; every new surface renders with an empty evidence store
-- Perf items include before/after `make benchmark` JSON; accuracy parity locked by tests
-- No secrets in code; no unverified safety/certification claims; readiness gate passes
+1. Provide separate liveness and readiness signals. Readiness must report model load, evidence database, and required camera/notification dependencies; it must fail clearly when a required dependency is unavailable.
+2. Expose metrics only on the private operations interface: camera freshness and reconnects, inference latency and throughput, incident counts, alert queue depth/drops, database health, disk usage, and model version.
+3. Extend the readiness gate so it rejects unsafe deployment configuration, missing authentication on shared deployments, invalid paths, unverified restore state, and absent model provenance. Keep warning-only local workstation settings explicit.
+4. Make high/critical container scanning a blocking CI gate, with documented per-vulnerability exceptions. Require an SBOM and build the deployment image from the same locked dependency set used by release validation.
+5. Publish an operator runbook for startup, camera loss, model rollback, failed alerts, restore, privacy requests, and incident escalation. Keep Kubernetes examples informational until they are actually validated.
 
-## 5. Risk Register
+**Exit gate:** A release candidate has a green clean-checkout CI run, a valid Compose configuration and image, an SBOM, passing readiness signals, and a rehearsed rollback and restore procedure.
 
-| Risk | Mitigation |
-|------|------------|
-| Inference changes regress accuracy (W4.2) | Box-output parity tests vs evidence snapshots gate every backend change |
-| AGPL (Ultralytics) | Commercial license or AGPL compliance before proprietary sale — carried in release checklist (W6.4) |
-| Worker imagery privacy | DPIA required before go-live; blur tooling exists; carried in release checklist |
-| Scope creep | Each item independently shippable; explicit defer allowed without blocking a milestone |
-| Migration breakage (W2.3) | Migrations additive + idempotent; restore drill (W2.4) is the rollback path |
+### Phase 5 — Finish the operator experience around real work
 
-## 6. Out of Scope (this plan)
+Keep the existing SAFE SIGHT visual identity and dark/light token system. Shape the browser interface for a supervisor who must decide quickly whether to act, review, or investigate:
 
-Person re-identification across cameras, multi-tenant SaaS, cloud model serving, video archival/NVR storage beyond existing retention, mobile-native apps.
+- **Command Center:** lead with open urgent incidents, current site/shift, measured camera health, and the next action. Keep “unmeasured” distinct from zero and never show a green workspace state without fresh input.
+- **Camera Wall:** add the existing page to navigation. Each tile should show source, zone, last-frame age, model state, incident count, and whether the feed is simulated. Support focus mode and a readable single-camera review layout.
+- **Incident workbench:** provide a severity-sorted queue and a detail panel with timeline, annotated evidence, camera/zone, model version, confidence, prior actions, and role-appropriate actions. Require a reason for false-positive and resolution decisions.
+- **Evidence review:** connect incident actions to frame or clip review, timestamp navigation, integrity state, and a traceable export. Do not label an export certified.
+- **Reports and settings:** use actual site timezone, selected date range, and authenticated actor; label all assumptions. Organize configuration into policy, camera, model, privacy, and integrations, with changes restricted by permission.
+- **Navigation and interaction:** render the existing Monitor, Review, and Configure groups instead of a flat list of nine routes. Preserve keyboard shortcuts, add visible focus and helpful empty/error states, and make primary actions usable on a supervisor tablet.
+- **Accessibility and clarity:** target WCAG 2.1 AA contrast and keyboard operation; never rely on color alone for severity or stream state; honor reduced motion; label camera imagery and announce status changes. Verify at desktop and tablet widths with real screenshots before release.
+
+**Exit gate:** A new operator can identify an urgent incident, open its evidence, record an authorized action, and return to monitoring without losing context. A stale camera, missing model, empty incident store, and failed export each have clear recovery guidance.
+
+### Phase 6 — Validate a site pilot and approve release
+
+1. Validate per-class performance by camera, distance, lighting, occlusion, and PPE type against a site-approved labeled set. Report false negatives and false alerts per camera-hour, not only overall mAP.
+2. Run a soak at the target camera count and resolution. Measure latency, frame loss, memory growth, reconnect time, disk growth, notification delivery, and operator-visible degradation.
+3. Have the site safety owner review sample detections, retention, privacy notices, incident workflow, and the operational limits. Model output remains decision support and cannot be presented as an automatic safety determination.
+4. Record the source revision, dependency lock, model digest and rights, benchmark report, migration version, security exceptions, and rollback target in the release record.
+
+**Go-live gate:** Every required limit is approved before the pilot, the measured pilot meets those limits, the recovery drill passes, and unresolved safety or privacy risks have an accountable owner.
+
+## Immediate work order
+
+1. Preserve and review the existing working-tree changes; decide the supported deployment profile.
+2. Validate the corrected Compose paths, then replace the fixed-value benchmark with a real capture/inference benchmark.
+3. Wire confirmed detections into persistent incidents and enforce real identity and permissions at service boundaries.
+4. Connect camera recovery and a durable alert outbox to the runtime.
+5. Complete migrations, recovery, readiness/metrics endpoints, and privacy controls.
+6. Build the advanced operator surfaces on top of that reliable event and camera state, then run site validation.
+
+No release should be called production-ready solely because the current offline readiness script passes.

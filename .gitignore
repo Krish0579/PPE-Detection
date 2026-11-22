@@ -19,6 +19,8 @@ env/
 .ruff_cache/
 .cache/
 .matplotlib/
+.coverage
+*.bak*
 .roo/
 .swarm/
 dist/

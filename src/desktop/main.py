@@ -23,7 +23,7 @@ logger = logging.getLogger("safesight.desktop")
 
 
 def load_stylesheet() -> str:
-    """Load high-contrast industrial dark theme QSS stylesheet."""
+    """Load the high-contrast desktop QSS stylesheet."""
     qss_path = PROJECT_ROOT / "src" / "desktop" / "styles" / "safesight.qss"
     if qss_path.exists():
         try:
@@ -44,7 +44,7 @@ def main() -> int:
     app.setOrganizationName("SafeSight")
     app.setFont(QFont("Helvetica Neue", 10))
 
-    # Apply industrial stylesheet
+    # Apply the shared desktop stylesheet
     qss = load_stylesheet()
     if qss:
         app.setStyleSheet(qss)

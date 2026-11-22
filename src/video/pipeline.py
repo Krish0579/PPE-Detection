@@ -315,13 +315,23 @@ class TelemetryState:
 class VideoPipeline:
     """Manages frame ingestion, YOLO inference, and overlay rendering."""
 
-    def __init__(self, model: YOLO | None, state: TelemetryState, device: str = "cpu", half: bool = False):
+    def __init__(
+        self,
+        model: YOLO | None,
+        state: TelemetryState,
+        device: str = "cpu",
+        half: bool = False,
+        evidence_mgr: EvidenceManager | None = None,
+    ):
         self.model = model
         self.state = state
         self.device = device
         self.half = half
         self.renderer = OverlayRenderer()
-        self.evidence_mgr = EvidenceManager()
+        # Web and desktop callers may still omit this dependency, but the
+        # Streamlit shell injects its configured manager so sealing, retention,
+        # and health telemetry describe the same evidence store as inference.
+        self.evidence_mgr = evidence_mgr or EvidenceManager()
         self.tracker = WorkerTracker()
         self.infer_lock = threading.Lock()
 

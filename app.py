@@ -1,6 +1,6 @@
 """
 ===============================================================================
- SAFE SIGHT AI · Industrial Shopfloor Computer Vision Platform
+ SAFE SIGHT AI · Safety Workspace Computer Vision Platform
 ===============================================================================
 """
 
@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import os
 import sys
+import time
+from html import escape
 from pathlib import Path
 
 import streamlit as st
@@ -39,17 +41,19 @@ configure_logging()
 
 # Streamlit Config
 st.set_page_config(
-    page_title="SAFE SIGHT AI · Industrial Vision Platform",
+    page_title="SAFE SIGHT AI · Safety Vision Workspace",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Theme and CSS — honors the sidebar Light/Dark switch (session-persisted;
-# falls back to light until the toggle is first rendered)
-from src.ui.theme import get_safesight_css, render_motion_bridge
+# Theme CSS. Dark mode is the control-room default; operators can switch to a
+# low-glare light palette from the navigation rail and the choice persists.
+from src.ui.theme import get_safesight_css
 
-css_payload = get_safesight_css(st.session_state.get("theme_mode", "light"))
+if "theme_mode" not in st.session_state:
+    st.session_state.theme_mode = "dark"
+css_payload = get_safesight_css(st.session_state.theme_mode)
 app_ui_css = """
 <style>
 /* App-level UX polish. Keep this local to app.py so the page shell can evolve
@@ -113,20 +117,6 @@ app_ui_css = """
     letter-spacing: 1.2px;
     text-transform: uppercase;
 }
-.ops-kbd {
-    display: inline-block;
-    min-width: 14px;
-    padding: 1px 5px;
-    border: 1px solid var(--line);
-    border-bottom-width: 2px;
-    border-radius: 5px;
-    background: var(--bg);
-    color: var(--heading);
-    font-family: monospace;
-    font-size: 10.5px;
-    font-weight: 700;
-    text-align: center;
-}
 @media (max-width: 768px) {
     .app-context-strip { align-items: flex-start; flex-direction: column; }
     .app-context-meta { justify-content: flex-start; }
@@ -140,38 +130,61 @@ else:
     st.markdown(css_payload, unsafe_allow_html=True)
     st.markdown(app_ui_css, unsafe_allow_html=True)
 
-render_motion_bridge()
-
-# Automatic Secure Context bridge: redirect 0.0.0.0 to localhost for browser webcam access
+# Automatic secure-context bridge: redirect 0.0.0.0 to localhost for browser
+# webcam access. Streamlit's current HTML primitive avoids the deprecated
+# components.v1.html warning while retaining a fallback for older releases.
+_secure_context_script = """
+<script>
+try {
+    if (window.parent && window.parent.location.hostname === "0.0.0.0") {
+        window.parent.location.hostname = "localhost";
+    } else if (window.location.hostname === "0.0.0.0") {
+        window.location.hostname = "localhost";
+    }
+} catch(e) {}
+</script>
+"""
 import streamlit.components.v1 as st_components
 
-st_components.html(
-    """
-    <script>
-    try {
-        if (window.parent && window.parent.location.hostname === "0.0.0.0") {
-            window.parent.location.hostname = "localhost";
-        } else if (window.location.hostname === "0.0.0.0") {
-            window.location.hostname = "localhost";
-        }
-    } catch(e) {}
-    </script>
-    """,
-    height=0,
-    width=0,
-)
+st_components.html(_secure_context_script, height=0, width=0)
 
 # Optional Auth Gate — themed operator login card (branded, keyboard accessible)
 from src.config.runtime import load_runtime_config
-from src.security.auth import is_auth_configured, verify_password
+from src.security.auth import (
+    effective_role,
+    is_auth_configured,
+    lockout_remaining,
+    register_login_failure,
+    register_login_success,
+    resolve_role,
+    session_expired,
+    session_idle_expired,
+)
 from src.ui.components import render_html
 
 _runtime_cfg = load_runtime_config()
-if is_auth_configured(_runtime_cfg.auth_required, _runtime_cfg.operator_password_sha256):
-    if not st.session_state.get("authenticated"):
-        render_html(
-            """
-            <div style="max-width:460px;margin:8vh auto 0;background:var(--panel);border:1px solid var(--line);
+_auth_enabled = is_auth_configured(_runtime_cfg.auth_required, _runtime_cfg.operator_password_sha256)
+if _auth_enabled and st.session_state.get("authenticated"):
+    _now = time.time()
+    _authenticated_at = float(st.session_state.get("authenticated_at", _now))
+    _last_seen_at = float(st.session_state.get("last_seen_at", _now))
+    if session_expired(_authenticated_at, _now, _runtime_cfg.session_ttl_min * 60) or session_idle_expired(
+        _last_seen_at, _now, _runtime_cfg.session_idle_min * 60
+    ):
+        st.session_state["authenticated"] = False
+        st.session_state.pop("user_role", None)
+        st.session_state.pop("authenticated_at", None)
+        st.session_state.pop("last_seen_at", None)
+        st.session_state["auth_expired_notice"] = True
+    else:
+        st.session_state["last_seen_at"] = _now
+
+if _auth_enabled and not st.session_state.get("authenticated"):
+    if st.session_state.pop("auth_expired_notice", False):
+        st.warning("Your operator session expired. Sign in again to continue.")
+    render_html(
+        """
+        <div style="max-width:460px;margin:8vh auto 0;background:var(--panel);border:1px solid var(--line);
                         border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.08);padding:34px 32px;text-align:center;">
                 <div style="background:var(--green-soft);color:var(--green);width:56px;height:56px;border-radius:14px;
                             display:grid;place-items:center;font-size:30px;margin:0 auto;" aria-hidden="true">🛡️</div>
@@ -179,21 +192,42 @@ if is_auth_configured(_runtime_cfg.auth_required, _runtime_cfg.operator_password
                 <p style="margin:0 0 22px !important;font-size:12px;letter-spacing:1.6px;color:var(--muted);font-weight:700;">
                     OPERATOR SIGN-IN REQUIRED
                 </p>
-            </div>
-            """
-        )
-        with st.container():
-            _left, _center, _right = st.columns([1, 2, 1])
-            with _center, st.form("login_form"):
-                password = st.text_input("Operator Password", type="password")
-                if st.form_submit_button("Log In", type="primary", use_container_width=True):
-                    if verify_password(password, _runtime_cfg.operator_password_sha256):
-                        st.session_state["authenticated"] = True
-                        st.session_state["user_role"] = "operator"
-                        st.rerun()
+        </div>
+        """
+    )
+    with st.container():
+        _left, _center, _right = st.columns([1, 2, 1])
+        with _center, st.form("login_form"):
+            password = st.text_input("Operator Password", type="password")
+            _lockout = lockout_remaining()
+            if _lockout > 0:
+                st.error(f"Too many failed attempts. Try again in {max(1, int(_lockout + 0.99))} seconds.")
+            if st.form_submit_button("Sign in", type="primary", use_container_width=True, disabled=_lockout > 0):
+                role = resolve_role(
+                    password,
+                    operator_sha256=_runtime_cfg.operator_password_sha256,
+                    supervisor_sha256=_runtime_cfg.supervisor_password_sha256,
+                    admin_sha256=_runtime_cfg.admin_password_sha256,
+                )
+                if role:
+                    register_login_success()
+                    _now = time.time()
+                    st.session_state["authenticated"] = True
+                    st.session_state["user_role"] = effective_role(
+                        role,
+                        admin_configured=bool(_runtime_cfg.admin_password_sha256),
+                        supervisor_configured=bool(_runtime_cfg.supervisor_password_sha256),
+                    )
+                    st.session_state["authenticated_at"] = _now
+                    st.session_state["last_seen_at"] = _now
+                    st.rerun()
+                else:
+                    _new_lockout = register_login_failure()
+                    if _new_lockout:
+                        st.error(f"Invalid credentials. Sign-in locked for {int(_new_lockout)} seconds.")
                     else:
                         st.error("Invalid credentials.")
-        st.stop()
+    st.stop()
 
 # Build Context
 from src.ui.app_context import build_context
@@ -201,152 +235,113 @@ from src.ui.app_context import build_context
 ctx = build_context()
 
 # UI Components and Navigation
-from src.ui.components import render_keyboard_shortcuts_script, render_sidebar_header
-from src.ui.pages import evidence_log, image_analysis, live_feed, system_settings, video_file
-from src.ui.pages import command_center as command_center
-from src.ui.pages import camera_wall as camera_wall
-
-# Consume pending hotkey navigation BEFORE the radio widget is instantiated.
-# Hotkey buttons set `_pending_nav` then call `st.rerun()`; we consume it here
-# so the radio widget picks it up cleanly as its default value.
-_pending_nav = st.session_state.pop("_pending_nav", None)
-if _pending_nav is not None:
-    st.session_state["workspace_navigation"] = _pending_nav
+from src.ui.components import (
+    render_sidebar_header,
+    render_workspace_context,
+)
+from src.ui.navigation import NAV_LABELS, NAV_PAGES, navigation_keys
+from src.ui.pages import (
+    command_center,
+    evidence_log,
+    image_analysis,
+    incidents_page,
+    live_feed,
+    reports_page,
+    system_health,
+    system_settings,
+    video_file,
+)
 
 with st.sidebar:
     render_sidebar_header()
 
-    NAV_PAGES = {
-        "Live operations": "Live Feed",
-        "Review footage": "Video File",
-        "Analyze image": "Image Analysis",
-        "Incident evidence": "Evidence Log",
-        "System policy": "System Settings",
-    }
-    NAV_LABELS = {
-        "Live operations": "📹  Live Feed",
-        "Review footage": "🎬  Video File",
-        "Analyze image": "🖼️  Image Analysis",
-        "Incident evidence": "📋  Evidence Log",
-        "System policy": "⚙️  System Settings",
-    }
+    _theme_selection = st.selectbox(
+        "Display theme",
+        options=("dark", "light"),
+        index=0 if st.session_state.theme_mode == "dark" else 1,
+        format_func=lambda value: "Dark control room" if value == "dark" else "Light review",
+        key="display_theme_selection",
+        help="Choose a display palette for this operator session.",
+    )
+    if _theme_selection != st.session_state.theme_mode:
+        st.session_state.theme_mode = _theme_selection
+        st.rerun()
+
     active_nav = st.radio(
         "Navigation",
-        list(NAV_PAGES.keys()),
+        navigation_keys(),
         format_func=lambda k: NAV_LABELS.get(k, k),
         key="workspace_navigation",
         label_visibility="collapsed",
     )
-    active_page = NAV_PAGES.get(active_nav, "Live Feed")
-
-    # Appearance: Light/Dark theme switch (X2) — persists for the session
-    st.markdown('<div class="nav-section-label">Appearance</div>', unsafe_allow_html=True)
-    dark_mode = st.toggle(
-        "Dark mode",
-        value=st.session_state.get("theme_mode", "light") == "dark",
-        key="theme_mode_toggle",
-        help="Switch the operations workspace between light and dark themes.",
-    )
-    desired_mode = "dark" if dark_mode else "light"
-    if st.session_state.get("theme_mode", "light") != desired_mode:
-        st.session_state["theme_mode"] = desired_mode
-        st.rerun()
-
-    # Keyboard shortcut cheat-sheet (U3): operators wear gloves — speed matters
-    st.markdown('<div class="nav-section-label">Shortcuts</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div style="font-size:11.5px;color:var(--muted);line-height:1.9;">'
-        '<span class="ops-kbd">1</span>–<span class="ops-kbd">5</span> Switch pages &nbsp;·&nbsp; '
-        '<span class="ops-kbd">S</span> Start/stop camera<br>'
-        '<span class="ops-kbd">?</span> Shortcut help &nbsp;·&nbsp; keys are ignored while typing'
-        "</div>",
-        unsafe_allow_html=True,
-    )
+    active_page = NAV_PAGES.get(active_nav, "Command Center")
 
 # Stop hardware camera when navigating away from Live Feed
 if active_page != "Live Feed" and ctx.camera_manager.is_running:
     ctx.camera_manager.stop()
     st.session_state.cam_stream_active = False
 
+# The shell reads the same measured status model as System Health so the
+# persistent context strip can never drift into a fabricated "live" state.
+from src.ui.status import overall_status
+
+_workspace_components = system_health.collect_status(ctx)
+_workspace_verdict = overall_status(_workspace_components)
+_snapshot = ctx.state.snapshot_ui()
+_capture_label = "Capture standby"
+if ctx.camera_manager.is_running:
+    _capture_label = "Simulated demo feed" if getattr(ctx.camera_manager, "is_simulated", False) else "Live capture"
+elif ctx.load_error:
+    _capture_label = "Inference unavailable"
+
+with st.sidebar:
+    if _auth_enabled and st.button("Sign out", key="sign_out", use_container_width=True):
+        st.session_state["authenticated"] = False
+        st.session_state.pop("user_role", None)
+        st.session_state.pop("authenticated_at", None)
+        st.session_state.pop("last_seen_at", None)
+        st.rerun()
+
+render_workspace_context(
+    status_label=_workspace_verdict.label,
+    status_class=_workspace_verdict.badge_class,
+    model_name=ctx.model_name,
+    device=ctx.device,
+    capture_label=_capture_label,
+    evidence_label=f"{int(_snapshot.get('snapshots_count', 0) or 0)} captures",
+)
+
 if ctx.load_error:
     st.error(f"⚠️ Model loading error: {ctx.load_error}")
-    st.info("System running in demo mode without AI inference.")
+    st.info("Inference is unavailable. The workspace remains usable for configuration and evidence review.")
 
 # Page Routing
 _PAGES = {
+    "Command Center": command_center.render,
     "Live Feed": live_feed.render,
+    "Incidents": incidents_page.render,
+    "Reports": reports_page.render,
     "Video File": video_file.render,
     "Image Analysis": image_analysis.render,
     "Evidence Log": evidence_log.render,
     "System Settings": system_settings.render,
+    "System Health": system_health.render,
 }
 _PAGES[active_page](ctx)
 
 # Footer
 render_html(
-    """
-    <div style="margin-top: 50px; padding: 20px 0; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted);">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <span style="color: var(--green); font-weight: 700;">SAFE SIGHT AI</span>
-            <span>·</span>
-            <span>Shopfloor Vision & Safety Intelligence Platform</span>
+    f"""
+    <footer class="safesight-footer">
+        <div>
+            <strong>SAFE SIGHT AI</strong>
+            <span>On-premise PPE decision support</span>
         </div>
         <div>
-            <span>Model: <strong>Custom PPE Neural Checkpoint</strong> · Trusted-checkpoint policy enforced</span>
+            <span>Checkpoint: <strong>{escape(ctx.model_name or "Unavailable")}</strong></span>
+            <span aria-hidden="true"> · </span>
+            <span>Compute: <strong>{escape(ctx.device or "Unknown")}</strong></span>
         </div>
-    </div>
+    </footer>
     """
 )
-
-
-# Keyboard shortcuts (U3): hidden hotkey buttons clicked by the global keydown
-# handler (render_keyboard_shortcuts_script). Clicking triggers a normal
-# Streamlit rerun so session state is preserved. They sit below the footer and
-# are hidden by the script; invalid presses are safely discarded.
-@st.dialog("⌨️ Keyboard Shortcuts")
-def _render_shortcuts_help() -> None:
-    st.caption("Operators wear gloves — interaction speed matters. Keys are ignored while typing in an input.")
-    st.markdown(
-        """
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <tr><td style="padding:7px 10px;border-bottom:1px solid var(--line);width:90px;"><span class="ops-kbd">1</span> – <span class="ops-kbd">5</span></td><td style="padding:7px 10px;border-bottom:1px solid var(--line);">Switch workspace pages</td></tr>
-            <tr><td style="padding:7px 10px;border-bottom:1px solid var(--line);"><span class="ops-kbd">S</span></td><td style="padding:7px 10px;border-bottom:1px solid var(--line);">Start / stop the live camera (Live Feed)</td></tr>
-            <tr><td style="padding:7px 10px;"><span class="ops-kbd">?</span></td><td style="padding:7px 10px;">Open this cheat-sheet</td></tr>
-        </table>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-_hot_nav, _hot_cam, _hot_help = st.columns(3)
-with _hot_nav:
-    if st.button("__hk_nav_1", key="hk_nav_1"):
-        st.session_state["_pending_nav"] = "Live operations"
-        st.rerun()
-    if st.button("__hk_nav_2", key="hk_nav_2"):
-        st.session_state["_pending_nav"] = "Review footage"
-        st.rerun()
-    if st.button("__hk_nav_3", key="hk_nav_3"):
-        st.session_state["_pending_nav"] = "Analyze image"
-        st.rerun()
-    if st.button("__hk_nav_4", key="hk_nav_4"):
-        st.session_state["_pending_nav"] = "Incident evidence"
-        st.rerun()
-    if st.button("__hk_nav_5", key="hk_nav_5"):
-        st.session_state["_pending_nav"] = "System policy"
-        st.rerun()
-with _hot_cam:
-    if active_page == "Live Feed" and st.button("__hk_cam", key="hk_cam"):
-        if ctx.camera_manager.is_running:
-            ctx.camera_manager.stop()
-            st.session_state["cam_stream_active"] = False
-        else:
-            dev_id = st.session_state.get("opencv_device_idx", 0)
-            ctx.camera_manager.start(device_index=dev_id, pipeline_ref=ctx.pipeline)
-            st.session_state["cam_stream_active"] = True
-        st.rerun()
-with _hot_help:
-    if st.button("__hk_help", key="hk_help"):
-        _render_shortcuts_help()
-
-render_keyboard_shortcuts_script(list(NAV_PAGES.values()))

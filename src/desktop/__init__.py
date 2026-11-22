@@ -1,4 +1,4 @@
-"""SAFE SIGHT AI - Industrial Desktop Safety Monitoring Platform (PySide6)."""
+"""SAFE SIGHT AI - Desktop safety review workspace (PySide6)."""
 
 from src.desktop.main_window import MainWindow
 

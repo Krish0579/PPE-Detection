@@ -1,4 +1,4 @@
-"""Industrial KPI Metric Card widget matching original Streamlit design."""
+"""Reusable workspace metric card widget."""
 
 from __future__ import annotations
 

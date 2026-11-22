@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "items": [
+    {
+      "title": "Inspect navigation and Camera Wall references",
+      "status": "in-progress"
+    },
+    {
+      "title": "Remove section guide and Camera Wall route",
+      "status": "pending"
+    },
+    {
+      "title": "Update tests and clean related glitches",
+      "status": "pending"
+    },
+    {
+      "title": "Run full checks and verify the running app",
+      "status": "pending"
+    }
+  ],
+  "updated_at": "2026-10-03T04:34:29.290Z",
+  "session_id": "01a0ffc8-36d5-75fb-8d97-728e356da3a6"
+}

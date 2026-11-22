@@ -54,7 +54,7 @@ class CameraSelector(QWidget):
             # Add index 0 as default option and simulated fallback
             self.combo.addItem("Camera 0 (Default)", 0)
 
-        self.combo.addItem("Synthetic Shopfloor (Simulation)", -1)
+        self.combo.addItem("Demo source (simulation)", -1)
         self.combo.blockSignals(False)
 
     def _on_combo_changed(self, index: int) -> None:

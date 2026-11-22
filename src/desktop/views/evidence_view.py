@@ -149,9 +149,7 @@ class EvidenceView(QWidget):
         lbl_title.setObjectName("pageTitle")
         title_vbox.addWidget(lbl_title)
 
-        lbl_sub = QLabel(
-            "Permanent SQLite audit trail, violation snapshots, incident resolution, and certified compliance exports."
-        )
+        lbl_sub = QLabel("SQLite event history, captured evidence, incident resolution, and review exports.")
         lbl_sub.setObjectName("pageSubtitle")
         title_vbox.addWidget(lbl_sub)
 
@@ -168,7 +166,7 @@ class EvidenceView(QWidget):
         )
         pills_row.addWidget(lbl_shift)
 
-        self.badge_status = StatusBadge(status="live", text="● AI VISION ACTIVE")
+        self.badge_status = StatusBadge(status="standby", text="● Workspace ready")
         pills_row.addWidget(self.badge_status)
         hc_layout.addLayout(pills_row)
 

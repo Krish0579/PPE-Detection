@@ -225,7 +225,13 @@ class EvidenceManager:
                             prev_linked = None
                             continue
                         report["events_linked"] += 1
-                        expected = _chain_hash(r["prev_hash"] or CHAIN_GENESIS, r["id"], r["event_type"], r["timestamp"], r["violation_type"])
+                        expected = _chain_hash(
+                            r["prev_hash"] or CHAIN_GENESIS,
+                            r["id"],
+                            r["event_type"],
+                            r["timestamp"],
+                            r["violation_type"],
+                        )
                         if expected != row_hash:
                             report["chain_ok"] = False
                             report["tampered_rows"].append(r["id"])

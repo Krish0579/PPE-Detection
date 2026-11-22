@@ -95,11 +95,11 @@ class LiveFeedView(QWidget):
         title_vbox = QVBoxLayout()
         title_vbox.setSpacing(3)
 
-        lbl_eyebrow = QLabel("● INDUSTRIAL VISION SYSTEM / CAM-01 ACTIVE")
+        lbl_eyebrow = QLabel("● CAMERA REVIEW / CAM-01 READY")
         lbl_eyebrow.setObjectName("pageEyebrow")
         title_vbox.addWidget(lbl_eyebrow)
 
-        lbl_title = QLabel("Live Shopfloor Vision Feed")
+        lbl_title = QLabel("Live camera review")
         lbl_title.setObjectName("pageTitle")
         title_vbox.addWidget(lbl_title)
 
@@ -122,7 +122,7 @@ class LiveFeedView(QWidget):
         )
         pills_row.addWidget(lbl_shift)
 
-        self.badge_status = StatusBadge(status="live", text="● AI VISION ACTIVE")
+        self.badge_status = StatusBadge(status="standby", text="● Workspace ready")
         pills_row.addWidget(self.badge_status)
 
         pills_vbox.addLayout(pills_row)
@@ -152,7 +152,7 @@ class LiveFeedView(QWidget):
 
         self.radio_browser = QRadioButton("Direct Camera")
         self.radio_webrtc = QRadioButton("Continuous 30 FPS Stream")
-        self.radio_usb = QRadioButton("Shopfloor Simulation")
+        self.radio_usb = QRadioButton("Demo source")
 
         self.radio_webrtc.setChecked(True)
         self.btn_group_source = QButtonGroup(self)
@@ -299,7 +299,7 @@ class LiveFeedView(QWidget):
         metrics_layout = QHBoxLayout()
         metrics_layout.setSpacing(14)
 
-        self.card_workers = MetricCard("Total workers", "0", "● Live monitored on shopfloor", color="blue")
+        self.card_workers = MetricCard("People in view", "0", "● Current camera view", color="blue")
         self.card_compliant = MetricCard("Safe workers", "0", "Full PPE equipped personnel", color="green")
         self.card_violations = MetricCard("Active violations", "0", "Immediate attention required", color="red")
         self.card_score = MetricCard("Safety score", "100.0%", "Compliant ÷ required checks", color="amber")
@@ -368,7 +368,7 @@ class LiveFeedView(QWidget):
         if is_sim:
             self.badge_status.set_status("simulated", "⚡ SIMULATED FEED")
         else:
-            self.badge_status.set_status("live", "● AI VISION ACTIVE")
+            self.badge_status.set_status("live", "● Camera review active")
 
     @Slot(list)
     def _on_workers(self, workers: list[Any]) -> None:

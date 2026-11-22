@@ -18,21 +18,22 @@ from src.core.validation import (
     validate_model_path,
 )
 from src.ui.app_context import AppContext
-from src.ui.components import render_html, render_page_header
+from src.ui.components import render_html, render_page_header, render_section_header
 
 
 def render(ctx: AppContext) -> None:
     """Render the Workspace & Vision Engine Settings page."""
     STATE = ctx.state
-    EVIDENCE_MGR = ctx.evidence
     active_model_path = ctx.active_model_path
 
     render_page_header(
-        title="Workspace & Vision Engine Settings",
-        subtitle="Configure model weights, hardware compute accelerators, per-class confidence thresholds, and PPE policy.",
-        eyebrow="SYSTEM CONFIGURATION",
-        tag="ADMIN CONTROLS",
+        title="Workspace settings",
+        subtitle="Configure the checkpoint, compute device, thresholds, required equipment, zones, storage, and alerts.",
+        eyebrow="CONFIGURE",
+        tag="SETTINGS",
     )
+
+    render_section_header("Workspace configuration", "Keep model, policy, storage, and alert settings explicit.")
 
     s_c1, s_c2 = st.columns(2, gap="large")
 
@@ -83,41 +84,11 @@ def render(ctx: AppContext) -> None:
                 "Browser model upload is disabled in production. Place reviewed checkpoints in `models/` during deployment."
             )
 
-        st.markdown("#### ⚡ AI Precision & Accuracy Engine")
-        st.caption("Maximize detection accuracy and recall for small PPE (goggles, gloves, boots).")
+        # AI Precision & Accuracy Engine section removed per user request
+        selected_mode = getattr(STATE, "mode_key", "balanced")
+        acc_boost_val = getattr(STATE, "accuracy_boost", False)
+        crop_refine_val = getattr(STATE, "crop_refine", False)
 
-        perf_mode_options = {
-            "balanced": "Balanced HD (640px · 30 FPS Standard)",
-            "performance": "High FPS Turbo (480px · Fast Frame Skip)",
-            "precision": "Ultra Precision (960px · Deep High-Res)",
-            "boosted": "✨ Max AI Accuracy Boost (960px + TTA + Person-Crop Scan)",
-        }
-        current_mode = getattr(STATE, "mode_key", "balanced")
-        if current_mode not in perf_mode_options:
-            current_mode = "balanced"
-
-        mode_keys = list(perf_mode_options.keys())
-        selected_mode = st.selectbox(
-            "Vision Engine Performance Profile",
-            mode_keys,
-            index=mode_keys.index(current_mode),
-            format_func=lambda k: perf_mode_options[k],
-            key="sys_perf_profile_select",
-            help="Select the hardware and inference profile. 'Max AI Accuracy Boost' runs multi-scale TTA and person-crop super-resolution.",
-        )
-
-        acc_boost_val = st.checkbox(
-            "Multi-Scale Test-Time Augmentation (TTA)",
-            value=bool(getattr(STATE, "accuracy_boost", False) or selected_mode == "boosted"),
-            key="sys_chk_tta_boost",
-            help="Enables multi-scale test-time augmentation to detect tilted, distant, or partially occluded PPE.",
-        )
-        crop_refine_val = st.checkbox(
-            "Hierarchical Person-Crop Scanning (Two-Pass Super-Resolution)",
-            value=bool(getattr(STATE, "crop_refine", False) or selected_mode == "boosted"),
-            key="sys_chk_crop_refine",
-            help="Performs a high-resolution secondary scan of each detected worker to catch small items (goggles, gloves, boots).",
-        )
 
     with s_c2:
         st.markdown("#### Inference Threshold Calibration")
@@ -211,7 +182,7 @@ def render(ctx: AppContext) -> None:
             crop_refine=crop_refine_val,
         )
 
-        st.markdown("#### Shopfloor Physical Zones")
+        st.markdown("#### Workspace zones")
         for z in DEFAULT_ZONES:
             restr_badge = "badge-amber" if z.type == "Restricted" else "badge-green"
             render_html(
@@ -228,43 +199,4 @@ def render(ctx: AppContext) -> None:
                 """
             )
 
-        st.markdown("#### 💾 Evidence Disk Usage & Maintenance")
-        st.caption("Monitor storage consumption and prune stale captures to prevent disk fill-up during long shifts")
-
-        # Get storage telemetry
-        storage_info = EVIDENCE_MGR.get_storage_telemetry()
-
-        col_disk1, col_disk2, col_disk3 = st.columns(3)
-        with col_disk1:
-            st.metric("Files Stored", storage_info["file_count"])
-        with col_disk2:
-            st.metric("Disk Usage", f"{storage_info['total_size_mb']:.2f} MB")
-        with col_disk3:
-            st.metric("Oldest Capture", storage_info["oldest_capture"])
-
-        # Progress bar showing usage relative to max snapshots
-        usage_pct = min(100, (storage_info["file_count"] / max(1, storage_info["max_snapshots_configured"])) * 100)
-        st.progress(
-            usage_pct / 100,
-            text=f"Snapshot retention: {storage_info['file_count']} / {storage_info['max_snapshots_configured']} ({usage_pct:.0f}%)",
-        )
-
-        col_prune1, col_prune2 = st.columns([2, 1], vertical_alignment="bottom")
-        with col_prune1:
-            prune_hours = st.number_input(
-                "Prune captures older than (hours)",
-                min_value=1,
-                max_value=720,
-                value=24,
-                step=1,
-                key="prune_hours_input",
-                help="Snapshots older than this will be permanently deleted",
-            )
-        with col_prune2:
-            if st.button("🧹 Clear Stale Captures", key="btn_prune_stale", use_container_width=True, type="primary"):
-                result = EVIDENCE_MGR.prune_stale_snapshots(older_than_hours=int(prune_hours))
-                if result.get("error"):
-                    st.error(f"Pruning failed: {result['error']}")
-                else:
-                    st.success(f"Deleted {result['deleted_count']} stale captures, freed {result['freed_mb']:.2f} MB")
-                    st.rerun()
+        # Evidence Disk Usage, Enterprise integrations, and Webhook sections removed per user request

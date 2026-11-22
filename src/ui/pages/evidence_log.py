@@ -16,6 +16,7 @@ from src.ui.components import (
     render_page_header,
     render_printable_safety_certificate,
     render_reports_view,
+    render_section_header,
 )
 
 
@@ -26,10 +27,10 @@ def render(ctx: AppContext) -> None:
     model_name = ctx.model_name
 
     render_page_header(
-        title="Evidence Archive & Incident Log",
-        subtitle="Permanent SQLite audit trail, violation snapshots, incident resolution, and certified compliance exports.",
-        eyebrow="IMMUTABLE AUDIT TRAIL",
-        tag="EVIDENCE DATABASE",
+        title="Evidence and incident review",
+        subtitle="Review captured events, resolve incidents, verify file integrity, and export a traceable record.",
+        eyebrow="REVIEW",
+        tag="EVIDENCE",
     )
 
     events = STATE.get_events()
@@ -50,6 +51,8 @@ def render(ctx: AppContext) -> None:
         top_missing = Counter(all_missing).most_common(1)[0][0]
     else:
         top_missing = "None (Fully Compliant)"
+
+    render_section_header("Incident overview", "A quick count of open, resolved, and recurring evidence.")
 
     # Row 1: KPI Metrics
     k1, k2, k3, k4 = st.columns(4)
@@ -99,7 +102,7 @@ def render(ctx: AppContext) -> None:
         [
             "⚠️ Incident Management",
             "📸 Snapshot Archive",
-            "📦 Audit exports",
+            "📦 Review exports",
         ]
     )
 
@@ -236,6 +239,25 @@ def render(ctx: AppContext) -> None:
                     c_meta3.metric("Size", f"{size_kb:.0f} KB")
                     if labels_str:
                         st.caption(f"🏷️ Violations: {labels_str}")
+
+                    # Cryptographic Chain of Custody Verification (C1)
+                    sha256_val = snap.get("sha256")
+                    if sha256_val:
+                        from src.storage.integrity import verify_snapshot_integrity
+
+                        if verify_snapshot_integrity(snap_path, sha256_val):
+                            st.success(f"🔒 Tamper-evident Seal: SHA-256 `{sha256_val[:16]}…` (VERIFIED)")
+                        else:
+                            st.error("⚠️ Hash Mismatch: Evidence integrity seal broken or file modified!")
+                    else:
+                        from src.storage.integrity import compute_file_sha256
+
+                        try:
+                            calc_hash = compute_file_sha256(snap_path)
+                            st.info(f"ℹ️ Snapshot Hash: SHA-256 `{calc_hash[:16]}…`")
+                        except Exception:
+                            pass
+
                     with open(snap_path, "rb") as f_obj:
                         st.download_button(
                             "⬇️ Download Full-Size JPEG",
@@ -362,13 +384,13 @@ def render(ctx: AppContext) -> None:
                 st.caption("☑️ Tick the confirmation above to unlock the bulk archive download.")
 
         st.markdown("---")
-        st.markdown("#### 📥 Shift Audit & Executive Reports")
+        st.markdown("#### 📥 Session exports and review reports")
 
         col_audit, col_print = st.columns(2, gap="medium")
 
         with col_audit:
             st.markdown("**1-Click Shift Audit (CSV)**")
-            st.caption("OSHA/ISO 45001 compliant breakdown by worker, gear type, and timestamp")
+            st.caption("Traceable breakdown by person, equipment status, and timestamp")
 
             # Get available sessions
             sessions = EVIDENCE_MGR.query_sessions(limit=10)
@@ -396,7 +418,7 @@ def render(ctx: AppContext) -> None:
 
         with col_print:
             st.markdown("**Print-Ready Executive Safety Report**")
-            st.caption("Formatted HTML certificate for window.print() — compliant with ISO 45001 audits")
+            st.caption("Formatted review record for window.print()")
 
             # Prepare data for certificate
             workers_detail = []

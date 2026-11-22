@@ -33,17 +33,17 @@ def render(ctx: AppContext) -> None:
     pipeline = ctx.pipeline
 
     render_page_header(
-        title="Recorded Video Inspection",
-        subtitle="High-throughput video file audit with frame scrubbing, PPE detection, and safety violation logging.",
-        eyebrow="OFFLINE AUDIT ENGINE",
-        tag="VIDEO ANALYSIS",
+        title="Recorded video review",
+        subtitle="Scrub a clip, inspect detections frame by frame, and save review evidence when needed.",
+        eyebrow="REVIEW",
+        tag="VIDEO",
     )
 
     uploaded_video = st.file_uploader(
         "Upload Video File (MP4, MOV, AVI, WEBM)",
         type=["mp4", "mov", "avi", "webm"],
         key="uploader_video_file",
-        help="Upload shopfloor surveillance clips for frame-by-frame compliance analysis.",
+        help="Upload a recorded clip for frame-by-frame review.",
     )
 
     if uploaded_video is not None:
@@ -124,7 +124,7 @@ def render(ctx: AppContext) -> None:
                             v_tot = len(v_workers)
                             v_viol = sum(1 for w in v_workers if w.has_active_violation)
                             v_safe = sum(1 for w in v_workers if w.is_compliant)
-                            v_score = 100.0 if v_tot == 0 else max(0.0, min(100.0, (v_safe / float(v_tot)) * 100.0))
+                            v_score = None if v_tot == 0 else max(0.0, min(100.0, (v_safe / float(v_tot)) * 100.0))
 
                             render_metrics_grid(
                                 total_workers=v_tot, safe_workers=v_safe, violations=v_viol, safety_score=v_score

@@ -1,19 +1,19 @@
 services:
   safesight:
-    build: ..
+    build: ../..
     image: safesight-ai:${IMAGE_TAG:-1.0.0}
     restart: unless-stopped
     user: "10001:10001"
     ports:
       - "127.0.0.1:8501:8501"
     env_file:
-      - ../.env
+      - ../../.env
     environment:
       SAFE_SIGHT_ENV: production
       PPE_MODEL_PATH: models/best.pt
     volumes:
       - safesight-data:/app/data
-      - ../models:/app/models:ro
+      - ../../models:/app/models:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health', timeout=3)"]
       interval: 30s

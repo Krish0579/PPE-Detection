@@ -153,9 +153,9 @@ class OpenCVCameraManager:
         if cap is None:
             if self._allow_simulation_fallback:
                 try:
-                    from src.video.demo_feed import DemoShopfloorFeed
+                    from src.video.demo_feed import DemoWorkspaceFeed
 
-                    demo_feed = DemoShopfloorFeed()
+                    demo_feed = DemoWorkspaceFeed()
                     is_simulated = True
                     sim_reason = (
                         "macOS denied camera access to the server process (System Settings → Privacy & Security → Camera)"

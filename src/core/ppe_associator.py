@@ -22,6 +22,7 @@ from src.core.class_semantics import (
     is_vest,
     normalize,
 )
+from src.core.worker_tracker import suppress_duplicate_person_boxes
 
 
 @dataclass
@@ -282,6 +283,9 @@ class WorkerTracker:
         frame_image: np.ndarray | None = None,
     ) -> list[tuple[int, float]]:
         """Match detected boxes with tracked workers. Returns list of (worker_id, dwell_seconds)."""
+        # Collapse duplicate person boxes so one human never becomes two identities.
+        detected_boxes = suppress_duplicate_person_boxes(detected_boxes)
+
         # Increment lost count for existing tracks
         for tid in list(self.tracks.keys()):
             self.tracks[tid]["lost"] += 1

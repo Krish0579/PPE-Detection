@@ -84,7 +84,7 @@ class VideoReviewView(QWidget):
         )
         pills_row.addWidget(lbl_shift)
 
-        self.badge_status = StatusBadge(status="live", text="● AI VISION ACTIVE")
+        self.badge_status = StatusBadge(status="standby", text="● Workspace ready")
         pills_row.addWidget(self.badge_status)
         hc_layout.addLayout(pills_row)
 

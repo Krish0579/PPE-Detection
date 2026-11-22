@@ -1,14 +1,14 @@
 # SAFE SIGHT AI
 
-SAFE SIGHT AI is an on-premise PPE-compliance monitoring application. It runs a
-reviewed Ultralytics YOLO checkpoint against live cameras, recorded video, and
-still images; associates PPE with workers; and retains incident evidence in a
-local SQLite audit store.
+SAFE SIGHT AI is a private-network PPE review workspace. It runs a reviewed
+Ultralytics YOLO checkpoint against live cameras, recorded video, and still
+images; associates required equipment with people; and retains incident
+evidence in a local SQLite store.
 
-## What is production-ready here
+## Included capabilities
 
 - Validated image, video, and optional checkpoint uploads with size limits.
-- Trusted-checkpoint policy: production instances disable browser model uploads
+- Trusted-checkpoint policy: deployed instances disable browser model uploads
   and only load reviewed `.pt` weights from `models/` by default.
 - Atomic evidence writes, SQLite WAL mode, bounded snapshot retention, and
   downloadable audit reports.
@@ -18,7 +18,7 @@ local SQLite audit store.
 ## Run locally
 
 ### 1. Native Desktop Application (PySide6)
-Launch the industrial desktop application with hardware camera capture, timeline scrubbing, and forensic evidence review:
+Launch the desktop workspace with camera capture, timeline scrubbing, and evidence review:
 ```bash
 python3 desktop.py
 ```
@@ -49,10 +49,10 @@ is intentionally configured for same-origin browser access by default.
 ## Operating requirements
 
 Treat model results as decision support, not a replacement for an on-site
-safety officer. Before production rollout, validate precision/recall for each
-camera angle, lighting condition, PPE policy, and workforce group; define a
-human incident-review process; set evidence-retention and access policies; and
-monitor model drift.
+safety officer. Before site rollout, validate precision and recall for each
+camera angle, lighting condition, equipment policy, and workforce group; define
+a human review process; set evidence-retention and access policies; and monitor
+model drift.
 
 The application defaults to a trusted model directory. To permit external
 paths or browser checkpoint uploads during a controlled administration session,

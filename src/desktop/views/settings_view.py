@@ -92,7 +92,7 @@ class SettingsView(QWidget):
         )
         pills_row.addWidget(lbl_shift)
 
-        self.badge_status = StatusBadge(status="live", text="● AI VISION ACTIVE")
+        self.badge_status = StatusBadge(status="standby", text="● Workspace ready")
         pills_row.addWidget(self.badge_status)
 
         self.btn_apply = QPushButton("Apply Settings")
@@ -298,7 +298,7 @@ class SettingsView(QWidget):
             r_layout.addWidget(chk)
 
         # Physical Zones Section matching Screenshot 5
-        lbl_sec_zone = QLabel("Shopfloor Physical Zones")
+        lbl_sec_zone = QLabel("Workspace zones")
         lbl_sec_zone.setStyleSheet("font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 12px;")
         r_layout.addWidget(lbl_sec_zone)
 

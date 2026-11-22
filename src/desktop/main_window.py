@@ -1,4 +1,4 @@
-"""Main application window for SAFE SIGHT AI desktop platform."""
+"""Main application window for the SAFE SIGHT AI review workspace."""
 
 from __future__ import annotations
 
@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
-    """SAFE SIGHT AI primary desktop window matching the original Streamlit application."""
+    """Primary desktop window for camera review, incidents, and settings."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("SAFE SIGHT AI · Industrial PPE Compliance Platform")
+        self.setWindowTitle("SAFE SIGHT AI · Safety Review Workspace")
         self.setMinimumSize(1200, 750)
         self.resize(1440, 920)
 
@@ -68,12 +68,13 @@ class MainWindow(QMainWindow):
             self.model = None
 
         self.telemetry_state = TelemetryState()
+        self.evidence_mgr = EvidenceManager(storage_dir=EVIDENCE_DIR, db_path=DB_PATH)
         self.pipeline = VideoPipeline(
             model=self.model,
             state=self.telemetry_state,
             device=self.device_str,
+            evidence_mgr=self.evidence_mgr,
         )
-        self.evidence_mgr = EvidenceManager(storage_dir=EVIDENCE_DIR, db_path=DB_PATH)
         self.video_worker = VideoWorker(pipeline=self.pipeline, parent=self)
 
     def _init_ui(self) -> None:
@@ -117,7 +118,7 @@ class MainWindow(QMainWindow):
         lbl_brand_name.setStyleSheet("font-size: 18px; font-weight: 800; color: #111827; letter-spacing: -0.5px;")
         brand_titles.addWidget(lbl_brand_name)
 
-        lbl_brand_tag = QLabel("VISION THAT PROTECTS.")
+        lbl_brand_tag = QLabel("SAFETY REVIEW WORKSPACE")
         lbl_brand_tag.setStyleSheet("font-size: 9.5px; font-weight: 700; color: #64748b; letter-spacing: 1.5px;")
         brand_titles.addWidget(lbl_brand_tag)
         brand_box.addLayout(brand_titles)
@@ -129,11 +130,11 @@ class MainWindow(QMainWindow):
         self.nav_list.setObjectName("navSidebar")
 
         nav_items = [
-            ("📹  Live Feed", "Live shopfloor camera stream & real-time PPE tracking"),
-            ("🎬  Video File", "Recorded video analysis & timeline scrub"),
-            ("🖼️  Image Analysis", "Static photo inspection & single-frame audit"),
-            ("📋  Evidence Log", "Forensic violation history & evidence archive"),
-            ("⚙️  System Settings", "Neural thresholds, mandatory PPE & zones"),
+            ("📹  Live Feed", "Review an active camera and detected people"),
+            ("🎬  Video File", "Scrub and inspect a recorded clip"),
+            ("🖼️  Image Analysis", "Review a still image or camera capture"),
+            ("📋  Evidence Log", "Resolve incidents and review saved evidence"),
+            ("⚙️  System Settings", "Configure checkpoints, zones, storage, and alerts"),
         ]
 
         for title, tooltip in nav_items:
@@ -145,7 +146,7 @@ class MainWindow(QMainWindow):
         self.nav_list.currentRowChanged.connect(self._on_navigation_changed)
         sidebar_layout.addWidget(self.nav_list, 1)
 
-        # User Profile Card matching Streamlit render_sidebar_profile
+        # Operator session card
         profile_frame = QFrame()
         profile_frame.setStyleSheet("""
             QFrame {
@@ -159,7 +160,7 @@ class MainWindow(QMainWindow):
         pf_layout.setContentsMargins(4, 4, 4, 4)
         pf_layout.setSpacing(10)
 
-        avatar = QLabel("JD")
+        avatar = QLabel("OP")
         avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
         avatar.setStyleSheet("""
             background-color: #047857;
@@ -176,10 +177,10 @@ class MainWindow(QMainWindow):
 
         p_info = QVBoxLayout()
         p_info.setSpacing(1)
-        lbl_pname = QLabel("Jamie Davis")
+        lbl_pname = QLabel("Operator session")
         lbl_pname.setStyleSheet("font-size: 12px; font-weight: 700; color: #111827;")
         p_info.addWidget(lbl_pname)
-        lbl_prole = QLabel("Safety Director · Admin")
+        lbl_prole = QLabel("Local workspace access")
         lbl_prole.setStyleSheet("font-size: 10px; color: #64748b; font-weight: 500;")
         p_info.addWidget(lbl_prole)
         pf_layout.addLayout(p_info)
@@ -230,7 +231,7 @@ class MainWindow(QMainWindow):
         self.lbl_clock.setStyleSheet("font-size: 12px; font-weight: 600; color: #64748b; margin-right: 12px;")
         th_layout.addWidget(self.lbl_clock)
 
-        self.badge_global = QLabel("● System operational")
+        self.badge_global = QLabel("● Workspace ready")
         self.badge_global.setStyleSheet("""
             background-color: #eaf7f1;
             color: #047857;
@@ -277,7 +278,7 @@ class MainWindow(QMainWindow):
 
         content_layout.addWidget(self.stack, 1)
 
-        # Enterprise Footer Bar matching Streamlit app.py lines 1314-1326
+        # Compact workspace footer
         footer_bar = QFrame()
         footer_bar.setObjectName("appFooter")
         footer_bar.setStyleSheet("""
@@ -291,7 +292,7 @@ class MainWindow(QMainWindow):
         fb_layout.setContentsMargins(0, 0, 0, 0)
 
         lbl_foot_left = QLabel(
-            "<span style='color: #047857; font-weight: 800;'>SAFE SIGHT AI</span>  ·  <span style='color: #64748b; font-weight: 500;'>Shopfloor Vision & Safety Intelligence Platform</span>"
+            "<span style='color: #047857; font-weight: 800;'>SAFE SIGHT AI</span>  ·  <span style='color: #64748b; font-weight: 500;'>Safety review workspace</span>"
         )
         lbl_foot_left.setTextFormat(Qt.TextFormat.RichText)
         lbl_foot_left.setStyleSheet("font-size: 11px;")
@@ -300,7 +301,7 @@ class MainWindow(QMainWindow):
         fb_layout.addStretch()
 
         lbl_foot_right = QLabel(
-            "Model: <strong style='color: #111827;'>Custom PPE Neural Checkpoint</strong> · <span style='color: #047857; font-weight: 600;'>Production Certified</span>"
+            "Checkpoint: <strong style='color: #111827;'>Custom PPE model</strong> · <span style='color: #047857; font-weight: 600;'>Decision support</span>"
         )
         lbl_foot_right.setTextFormat(Qt.TextFormat.RichText)
         lbl_foot_right.setStyleSheet("font-size: 11px; color: #64748b;")

@@ -33,10 +33,10 @@ def render(ctx: AppContext) -> None:
     pipeline = ctx.pipeline
 
     render_page_header(
-        title="High-Resolution Image Inspection",
-        subtitle="Precision spatial PPE inspection on individual photographs and quality inspection captures.",
-        eyebrow="PRECISION AUDIT",
-        tag="STATIC ANALYSIS",
+        title="Image review",
+        subtitle="Inspect one image at a time with clear detections, required equipment status, and evidence capture.",
+        eyebrow="REVIEW",
+        tag="IMAGE",
     )
 
     source_choice = st.radio(
@@ -75,10 +75,10 @@ def render(ctx: AppContext) -> None:
             except cv2.error as exc:
                 st.error(f"Failed to decode image: {exc}")
         else:
-            st.info("Upload a high-resolution JPG, PNG, or WEBP image to execute automated PPE inspection.")
+            st.info("Upload a JPG, PNG, or WEBP image to begin a focused review.")
 
     elif source_choice == "📸 Live Camera Capture":
-        st.caption("Direct browser camera capture. Take a live photo to execute immediate PPE safety inspection.")
+        st.caption("Take a still capture from your browser to begin a focused review.")
         cam_snap = st.camera_input(
             "Take Live Photo for Inspection",
             key="camera_input_image_analysis",
@@ -98,7 +98,7 @@ def render(ctx: AppContext) -> None:
                 except Exception as e:
                     st.error(f"Failed to read captured camera image: {e}")
         else:
-            st.info("Capture a live photograph using the camera input above to execute automated PPE inspection.")
+            st.info("Capture a photo above to begin a focused review.")
 
     if target_img is not None:
         orig_h, orig_w = target_img.shape[:2]
@@ -195,7 +195,7 @@ def render(ctx: AppContext) -> None:
         i_tot = len(i_workers)
         i_viol = sum(1 for w in i_workers if w.has_active_violation)
         i_safe = sum(1 for w in i_workers if w.is_compliant)
-        i_score = 100.0 if i_tot == 0 else max(0.0, min(100.0, (i_safe / float(i_tot)) * 100.0))
+        i_score = None if i_tot == 0 else max(0.0, min(100.0, (i_safe / float(i_tot)) * 100.0))
 
         # Viewport Display
         if view_mode == "Side-by-Side Comparison":
