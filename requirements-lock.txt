@@ -83,8 +83,8 @@ streamlit==1.62.0
 streamlit-webrtc==0.77.0
 sympy==1.14.0
 toml==0.10.2
-torch==2.14.0
-torchvision==0.29.0
+torch==2.14.1
+torchvision==0.29.2
 truststore==0.10.4
 typing-inspection==0.4.4
 typing_extensions==4.16.0
